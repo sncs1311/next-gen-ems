@@ -1,0 +1,3333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMS — Equipment Management System Wireframes</title>
+<style>
+  :root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2128;
+    --bg-card: #21262d;
+    --bg-input: #0d1117;
+    --border: #30363d;
+    --border-light: #21262d;
+    --accent: #f0883e;
+    --accent-dim: #f0883e22;
+    --accent-green: #3fb950;
+    --accent-green-dim: #3fb95022;
+    --accent-red: #f85149;
+    --accent-red-dim: #f8514922;
+    --accent-yellow: #d29922;
+    --accent-yellow-dim: #d2992222;
+    --accent-blue: #58a6ff;
+    --accent-blue-dim: #58a6ff22;
+    --accent-purple: #bc8cff;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-dim: #484f58;
+    --sidebar-width: 240px;
+    --header-height: 56px;
+    --radius: 6px;
+    --radius-lg: 10px;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    height: var(--header-height);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+  }
+
+  .topbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-primary);
+    min-width: var(--sidebar-width);
+  }
+
+  .topbar-logo .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #000; font-weight: 900;
+  }
+
+  .topbar-search {
+    flex: 1;
+    max-width: 400px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 12px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-family: var(--font);
+  }
+
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .role-switcher {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .role-switcher select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+  }
+
+  .topbar-alert-bell {
+    position: relative;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 18px;
+  }
+
+  .alert-badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: var(--accent-red);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .topbar-avatar {
+    width: 30px; height: 30px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #000;
+    cursor: pointer;
+  }
+
+  /* LAYOUT */
+  .layout {
+    display: flex;
+    margin-top: var(--header-height);
+    min-height: calc(100vh - var(--header-height));
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: var(--header-height);
+    bottom: 0;
+    overflow-y: auto;
+    padding: 12px 0;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 12px 16px 4px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.1s, color 0.1s;
+    border-left: 2px solid transparent;
+    user-select: none;
+  }
+
+  .nav-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .nav-item.active {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-left-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .nav-item .nav-icon { font-size: 14px; width: 16px; text-align: center; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--accent-red);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+
+  .nav-badge.green { background: var(--accent-green); color: #000; }
+  .nav-badge.yellow { background: var(--accent-yellow); color: #000; }
+
+  /* MAIN CONTENT */
+  .main {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 16px;
+  }
+
+  .page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+  .page-subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
+
+  .page-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  /* BUTTONS */
+  .btn {
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-family: var(--font);
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { opacity: 0.85; }
+
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .btn-danger { background: var(--accent-red); color: #fff; }
+  .btn-success { background: var(--accent-green); color: #000; }
+  .btn-ghost { background: transparent; color: var(--text-secondary); border-color: var(--border); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+  /* CARDS */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .card-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .card-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+  }
+
+  .kpi-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+  .kpi-change { font-size: 12px; font-weight: 600; }
+  .kpi-change.up { color: var(--accent-green); }
+  .kpi-change.down { color: var(--accent-red); }
+  .kpi-change.neutral { color: var(--text-secondary); }
+  .kpi-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-7-3 { display: grid; grid-template-columns: 7fr 3fr; gap: 16px; }
+  .grid-6-4 { display: grid; grid-template-columns: 6fr 4fr; gap: 16px; }
+
+  /* TABLES */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  tbody tr:hover { background: var(--bg-tertiary); }
+  tbody td { padding: 11px 14px; vertical-align: middle; }
+
+  .td-primary { font-weight: 600; color: var(--text-primary); }
+  .td-secondary { color: var(--text-secondary); font-size: 12px; }
+  .td-mono { font-family: var(--font-mono); font-size: 12px; color: var(--accent-blue); }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .badge-green { background: var(--accent-green-dim); color: var(--accent-green); border: 1px solid var(--accent-green); }
+  .badge-red { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid var(--accent-red); }
+  .badge-yellow { background: var(--accent-yellow-dim); color: var(--accent-yellow); border: 1px solid var(--accent-yellow); }
+  .badge-blue { background: var(--accent-blue-dim); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
+  .badge-purple { background: #bc8cff22; color: var(--accent-purple); border: 1px solid var(--accent-purple); }
+  .badge-gray { background: #ffffff11; color: var(--text-secondary); border: 1px solid var(--border); }
+  .badge-orange { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
+
+  /* FORMS */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .form-full { grid-column: 1 / -1; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .form-label .required { color: var(--accent-red); margin-left: 2px; }
+
+  .form-input, .form-select, .form-textarea {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: var(--font);
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-hint { font-size: 11px; color: var(--text-dim); }
+
+  .form-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .form-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+  }
+
+  /* CHART PLACEHOLDER */
+  .chart-placeholder {
+    background: var(--bg-tertiary);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+
+  .chart-placeholder .chart-icon { font-size: 28px; }
+
+  /* ALERT ITEMS */
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--border);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .alert-item:hover { background: var(--bg-card); }
+  .alert-item.critical { border-left-color: var(--accent-red); }
+  .alert-item.warning { border-left-color: var(--accent-yellow); }
+  .alert-item.info { border-left-color: var(--accent-blue); }
+
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .alert-content { flex: 1; }
+  .alert-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .alert-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .alert-time { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+  /* STEPPER */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 32px;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+
+  .step.active { color: var(--accent); }
+  .step.done { color: var(--accent-green); }
+
+  .step-circle {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .step.active .step-circle { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .step.done .step-circle { border-color: var(--accent-green); background: var(--accent-green); color: #000; }
+
+  .step-line { flex: 1; height: 1px; background: var(--border); min-width: 30px; }
+  .step-line.done { background: var(--accent-green); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s;
+    white-space: nowrap;
+  }
+
+  .tab:hover { color: var(--text-primary); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* DETAIL ROWS */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+  .detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+  }
+
+  .detail-label { font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .detail-value { font-size: 13px; color: var(--text-primary); font-weight: 500; }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-input {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 12px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: var(--font);
+  }
+
+  .filter-input:focus { outline: none; border-color: var(--accent); }
+
+  .filter-select {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 12px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: var(--font);
+    cursor: pointer;
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  /* TIMELINE */
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+
+  .timeline-item {
+    display: flex;
+    gap: 14px;
+    padding-bottom: 18px;
+    position: relative;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 28px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+
+  .timeline-item:last-child::before { display: none; }
+
+  .timeline-dot {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    background: var(--bg-card);
+  }
+
+  .timeline-content { flex: 1; }
+  .timeline-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .timeline-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .timeline-time { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+
+  /* SCORE RING */
+  .score-ring {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .score-circle {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid;
+    font-weight: 800;
+    font-size: 22px;
+  }
+
+  .score-circle.low { border-color: var(--accent-green); color: var(--accent-green); }
+  .score-circle.medium { border-color: var(--accent-yellow); color: var(--accent-yellow); }
+  .score-circle.high { border-color: var(--accent-red); color: var(--accent-red); }
+
+  /* CHECKLIST */
+  .checklist { display: flex; flex-direction: column; gap: 8px; }
+
+  .checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+    font-size: 13px;
+  }
+
+  .check-icon { font-size: 16px; }
+  .check-label { flex: 1; color: var(--text-primary); }
+  .check-status { font-size: 12px; font-weight: 600; }
+  .check-status.pass { color: var(--accent-green); }
+  .check-status.fail { color: var(--accent-red); }
+  .check-status.na { color: var(--text-dim); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+  }
+
+  .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state .empty-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+  .empty-state .empty-desc { font-size: 13px; }
+
+  /* SEPARATOR */
+  .sep { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* STATUS DOT */
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+
+  .dot-green { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+  .dot-red { background: var(--accent-red); }
+  .dot-yellow { background: var(--accent-yellow); }
+  .dot-blue { background: var(--accent-blue); }
+  .dot-gray { background: var(--text-dim); }
+
+  /* MINI BAR CHART VISUAL */
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 80px;
+    padding: 0 4px;
+  }
+
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .bar-fill {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    min-height: 4px;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+
+  .bar-label { font-size: 9px; color: var(--text-dim); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-7-3, .grid-6-4 { grid-template-columns: 1fr; }
+    .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* NOTIFICATION DOT */
+  .notif-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent-red);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  /* PAGE TRANSITION */
+  .page.active { animation: fadein 0.15s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .breadcrumb {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .breadcrumb span { color: var(--text-secondary); cursor: pointer; }
+  .breadcrumb span:hover { color: var(--accent); }
+  .breadcrumb .sep { height: auto; margin: 0; background: none; color: var(--text-dim); }
+
+  .info-box {
+    background: var(--accent-blue-dim);
+    border: 1px solid var(--accent-blue);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--accent-blue);
+    margin-bottom: 16px;
+  }
+
+  .warn-box {
+    background: var(--accent-yellow-dim);
+    border: 1px solid var(--accent-yellow);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--accent-yellow);
+    margin-bottom: 16px;
+  }
+
+  .error-box {
+    background: var(--accent-red-dim);
+    border: 1px solid var(--accent-red);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--accent-red);
+    margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-icon">E</div>
+    <span>EMS Portal</span>
+  </div>
+  <input class="topbar-search" placeholder="🔍  Search assets, drivers, job cards...">
+  <div class="topbar-right">
+    <div class="role-switcher">
+      <span>View as:</span>
+      <select id="roleSelect" onchange="switchRole(this.value)">
+        <option value="fleet_manager">Fleet Manager</option>
+        <option value="site_engineer">Site Engineer</option>
+        <option value="mechanic">Workshop Mechanic</option>
+        <option value="hse">HSE Officer</option>
+        <option value="executive">Executive</option>
+        <option value="finance">Finance</option>
+        <option value="sysadmin">System Admin</option>
+      </select>
+    </div>
+    <div class="topbar-alert-bell" onclick="navigate('alerts')">
+      🔔
+      <div class="alert-badge">7</div>
+    </div>
+    <div class="topbar-avatar">FM</div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="nav-section-label">Overview</div>
+  <div class="nav-item active" onclick="navigate('dashboard')" id="nav-dashboard">
+    <span class="nav-icon">📊</span> Dashboard
+  </div>
+  <div class="nav-item" onclick="navigate('alerts')" id="nav-alerts">
+    <span class="nav-icon">🔔</span> Alerts & Notifications
+    <span class="nav-badge">7</span>
+  </div>
+
+  <div class="nav-section-label">Asset Management</div>
+  <div class="nav-item" onclick="navigate('asset-list')" id="nav-asset-list">
+    <span class="nav-icon">🚛</span> Asset Registry
+  </div>
+  <div class="nav-item" onclick="navigate('asset-register')" id="nav-asset-register">
+    <span class="nav-icon">➕</span> Register Asset
+  </div>
+
+  <div class="nav-section-label">People</div>
+  <div class="nav-item" onclick="navigate('driver-list')" id="nav-driver-list">
+    <span class="nav-icon">👤</span> Driver Registry
+  </div>
+  <div class="nav-item" onclick="navigate('driver-register')" id="nav-driver-register">
+    <span class="nav-icon">➕</span> Register Driver
+  </div>
+
+  <div class="nav-section-label">Operations</div>
+  <div class="nav-item" onclick="navigate('fuel-log')" id="nav-fuel-log">
+    <span class="nav-icon">⛽</span> Fuel Log Entry
+  </div>
+  <div class="nav-item" onclick="navigate('fuel-history')" id="nav-fuel-history">
+    <span class="nav-icon">📋</span> Fuel History
+  </div>
+  <div class="nav-item" onclick="navigate('fuel-tank')" id="nav-fuel-tank">
+    <span class="nav-icon">🛢️</span> Site Fuel Tanks
+  </div>
+  <div class="nav-item" onclick="navigate('utilization')" id="nav-utilization">
+    <span class="nav-icon">📅</span> Utilization Log
+  </div>
+
+  <div class="nav-section-label">Maintenance</div>
+  <div class="nav-item" onclick="navigate('breakdown')" id="nav-breakdown">
+    <span class="nav-icon">🔧</span> Report Breakdown
+  </div>
+  <div class="nav-item" onclick="navigate('jobcard-list')" id="nav-jobcard-list">
+    <span class="nav-icon">📝</span> Job Cards
+    <span class="nav-badge yellow">4</span>
+  </div>
+  <div class="nav-item" onclick="navigate('pm-schedule')" id="nav-pm-schedule">
+    <span class="nav-icon">🗓️</span> PM Schedule
+  </div>
+
+  <div class="nav-section-label">Transfers</div>
+  <div class="nav-item" onclick="navigate('transfer-request')" id="nav-transfer-request">
+    <span class="nav-icon">🔄</span> Request Transfer
+  </div>
+  <div class="nav-item" onclick="navigate('transfer-queue')" id="nav-transfer-queue">
+    <span class="nav-icon">✅</span> Approval Queue
+    <span class="nav-badge">3</span>
+  </div>
+  <div class="nav-item" onclick="navigate('transfer-history')" id="nav-transfer-history">
+    <span class="nav-icon">🗃️</span> Transfer History
+  </div>
+
+  <div class="nav-section-label">Safety</div>
+  <div class="nav-item" onclick="navigate('incident-report')" id="nav-incident-report">
+    <span class="nav-icon">⚠️</span> File Incident
+  </div>
+  <div class="nav-item" onclick="navigate('incident-list')" id="nav-incident-list">
+    <span class="nav-icon">📂</span> Incident Records
+  </div>
+
+  <div class="nav-section-label">Projects & Sites</div>
+  <div class="nav-item" onclick="navigate('project-list')" id="nav-project-list">
+    <span class="nav-icon">🏗️</span> Projects
+  </div>
+  <div class="nav-item" onclick="navigate('project-register')" id="nav-project-register">
+    <span class="nav-icon">➕</span> New Project
+  </div>
+
+  <div class="nav-section-label">Analytics</div>
+  <div class="nav-item" onclick="navigate('analytics-utilization')" id="nav-analytics-utilization">
+    <span class="nav-icon">📈</span> Utilization Report
+  </div>
+  <div class="nav-item" onclick="navigate('analytics-cost')" id="nav-analytics-cost">
+    <span class="nav-icon">💰</span> Cost Analytics
+  </div>
+  <div class="nav-item" onclick="navigate('analytics-fuel-heat')" id="nav-analytics-fuel-heat">
+    <span class="nav-icon">🔥</span> Fuel Heatmap
+  </div>
+
+  <div class="nav-section-label">Intelligence</div>
+  <div class="nav-item" onclick="navigate('intel-predictive')" id="nav-intel-predictive">
+    <span class="nav-icon">🤖</span> Predictive Maintenance
+  </div>
+  <div class="nav-item" onclick="navigate('intel-fuel-forecast')" id="nav-intel-fuel-forecast">
+    <span class="nav-icon">🔮</span> Fuel Forecast
+  </div>
+  <div class="nav-item" onclick="navigate('intel-driver-risk')" id="nav-intel-driver-risk">
+    <span class="nav-icon">🎯</span> Driver Risk Scores
+  </div>
+  <div class="nav-item" onclick="navigate('intel-replacement')" id="nav-intel-replacement">
+    <span class="nav-icon">🔁</span> Replacement Alerts
+  </div>
+
+  <div class="nav-section-label">Administration</div>
+  <div class="nav-item" onclick="navigate('admin-users')" id="nav-admin-users">
+    <span class="nav-icon">👥</span> User Management
+  </div>
+  <div class="nav-item" onclick="navigate('admin-config')" id="nav-admin-config">
+    <span class="nav-icon">⚙️</span> System Config
+  </div>
+  <div class="nav-item" onclick="navigate('admin-audit')" id="nav-admin-audit">
+    <span class="nav-icon">🔍</span> Audit Log
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<!-- ========== DASHBOARD ========== -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Fleet Overview Dashboard</div>
+      <div class="page-subtitle">Last updated: Today, 06:00 GST — Nightly batch complete</div>
+    </div>
+    <div class="page-actions">
+      <select class="filter-select"><option>This Month</option><option>Last 3 Months</option><option>Last 12 Months</option></select>
+      <button class="btn btn-secondary">Export PDF</button>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Fleet</div>
+      <div class="kpi-value">50</div>
+      <div class="kpi-change neutral">5 categories</div>
+      <div class="kpi-sub">Active: 38 · Maintenance: 6 · Idle: 4 · Transit: 2</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Fleet Utilization Rate</div>
+      <div class="kpi-value">74.2%</div>
+      <div class="kpi-change up">↑ 3.1% vs last month</div>
+      <div class="kpi-sub">Productive hrs / Available hrs</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg MTBF</div>
+      <div class="kpi-value">412 <span style="font-size:14px;font-weight:500">hrs</span></div>
+      <div class="kpi-change down">↓ 18hrs vs last month</div>
+      <div class="kpi-sub">Mean Time Between Failures</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg MTTR</div>
+      <div class="kpi-value">9.4 <span style="font-size:14px;font-weight:500">hrs</span></div>
+      <div class="kpi-change up">↓ 1.2hrs — improving</div>
+      <div class="kpi-sub">Mean Time To Repair</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Fuel Spend MTD</div>
+      <div class="kpi-value">QAR 184K</div>
+      <div class="kpi-change down">↑ 7.4% vs last month</div>
+      <div class="kpi-sub">Across 5 active sites</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Maintenance Cost MTD</div>
+      <div class="kpi-value">QAR 62K</div>
+      <div class="kpi-change up">↓ 4.2% vs last month</div>
+      <div class="kpi-sub">Parts: 41K · Labor: 21K</div>
+    </div>
+  </div>
+
+  <div class="grid-7-3">
+    <div>
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Fleet Utilization by Site</div>
+              <div class="card-subtitle">Productive hrs / Available hrs — This Month</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                <span style="color:var(--text-secondary)">PRJ-QAT-2024-001 · Ras Laffan</span>
+                <span style="color:var(--text-primary);font-weight:700">82%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:82%;background:var(--accent-green)"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                <span style="color:var(--text-secondary)">PRJ-UAE-2024-003 · Abu Dhabi</span>
+                <span style="color:var(--text-primary);font-weight:700">76%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:76%;background:var(--accent-green)"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                <span style="color:var(--text-secondary)">PRJ-SAU-2024-002 · Jubail</span>
+                <span style="color:var(--text-primary);font-weight:700">68%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:68%;background:var(--accent-yellow)"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                <span style="color:var(--text-secondary)">PRJ-QAT-2024-005 · Mesaieed</span>
+                <span style="color:var(--text-primary);font-weight:700">71%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:71%;background:var(--accent-yellow)"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+                <span style="color:var(--text-secondary)">PRJ-UAE-2024-007 · Sharjah</span>
+                <span style="color:var(--text-primary);font-weight:700">59%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:59%;background:var(--accent-red)"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Asset Status Distribution</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px">
+              <div style="width:12px;height:12px;border-radius:2px;background:var(--accent-green);flex-shrink:0"></div>
+              <span style="color:var(--text-secondary);flex:1">Active</span>
+              <span style="font-weight:700;color:var(--text-primary)">38</span>
+              <span style="color:var(--text-dim);font-size:11px">76%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px">
+              <div style="width:12px;height:12px;border-radius:2px;background:var(--accent-yellow);flex-shrink:0"></div>
+              <span style="color:var(--text-secondary);flex:1">Under Maintenance</span>
+              <span style="font-weight:700;color:var(--text-primary)">6</span>
+              <span style="color:var(--text-dim);font-size:11px">12%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px">
+              <div style="width:12px;height:12px;border-radius:2px;background:var(--text-dim);flex-shrink:0"></div>
+              <span style="color:var(--text-secondary);flex:1">Idle</span>
+              <span style="font-weight:700;color:var(--text-primary)">4</span>
+              <span style="color:var(--text-dim);font-size:11px">8%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px">
+              <div style="width:12px;height:12px;border-radius:2px;background:var(--accent-blue);flex-shrink:0"></div>
+              <span style="color:var(--text-secondary);flex:1">In Transit</span>
+              <span style="font-weight:700;color:var(--text-primary)">2</span>
+              <span style="color:var(--text-dim);font-size:11px">4%</span>
+            </div>
+          </div>
+          <div class="sep"></div>
+          <div class="card-title" style="margin-bottom:10px">Fuel Spend — Last 6 Months</div>
+          <div class="bar-chart">
+            <div class="bar-col"><div class="bar-fill" style="height:50%"></div><div class="bar-label">Feb</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:65%"></div><div class="bar-label">Mar</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:58%"></div><div class="bar-label">Apr</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:72%"></div><div class="bar-label">May</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:68%"></div><div class="bar-label">Jun</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:80%;background:var(--accent)"></div><div class="bar-label">Jul</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Assets Due for Service — Next 30 Days</div>
+          <button class="btn btn-secondary btn-sm">View All</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Asset</th><th>Service Type</th><th>Due Date</th><th>Current Hrs</th><th>OEM Interval</th><th>Status</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+              <tr onclick="navigate('jobcard-list')">
+                <td><div class="td-primary">CAT 320 Excavator</div><div class="td-mono">EQ-2024-0003</div></td>
+                <td>Engine Oil Change</td>
+                <td style="color:var(--accent-red);font-weight:700">Overdue — 3 days</td>
+                <td>4,253 hrs</td>
+                <td>250 hrs</td>
+                <td><span class="badge badge-red">Critical</span></td>
+                <td><button class="btn btn-primary btn-sm">Open Job Card</button></td>
+              </tr>
+              <tr>
+                <td><div class="td-primary">Liebherr LR 1300 Crane</div><div class="td-mono">EQ-2024-0031</div></td>
+                <td>Full OEM Inspection</td>
+                <td style="color:var(--accent-yellow);font-weight:700">Due in 5 days</td>
+                <td>2,198 hrs</td>
+                <td>1000 hrs</td>
+                <td><span class="badge badge-yellow">Warning</span></td>
+                <td><button class="btn btn-secondary btn-sm">Schedule</button></td>
+              </tr>
+              <tr>
+                <td><div class="td-primary">Volvo FMX 460 Tipper</div><div class="td-mono">EQ-2024-0013</div></td>
+                <td>Hydraulic Oil Change</td>
+                <td>Due in 12 days</td>
+                <td>6,810 km</td>
+                <td>7,500 km</td>
+                <td><span class="badge badge-blue">Upcoming</span></td>
+                <td><button class="btn btn-ghost btn-sm">Schedule</button></td>
+              </tr>
+              <tr>
+                <td><div class="td-primary">Toyota Land Cruiser</div><div class="td-mono">EQ-2024-0001</div></td>
+                <td>Air Filter Replacement</td>
+                <td>Due in 18 days</td>
+                <td>28,440 km</td>
+                <td>30,000 km</td>
+                <td><span class="badge badge-blue">Upcoming</span></td>
+                <td><button class="btn btn-ghost btn-sm">Schedule</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔔 Active Alerts</div>
+          <span class="badge badge-red">7 new</span>
+        </div>
+        <div class="alert-item critical">
+          <div class="alert-icon">🚨</div>
+          <div class="alert-content">
+            <div class="alert-title">CAT 320 — Service Overdue</div>
+            <div class="alert-desc">EQ-2024-0003 · Engine oil change 3 days overdue</div>
+          </div>
+        </div>
+        <div class="alert-item critical">
+          <div class="alert-icon">📄</div>
+          <div class="alert-content">
+            <div class="alert-title">Insurance Expiring — 4 assets</div>
+            <div class="alert-desc">Policies expire within 30 days</div>
+          </div>
+        </div>
+        <div class="alert-item warning">
+          <div class="alert-icon">⛽</div>
+          <div class="alert-content">
+            <div class="alert-title">Fuel Anomaly Detected</div>
+            <div class="alert-desc">EQ-2024-0007 · 22.8% overconsumption vs average</div>
+          </div>
+        </div>
+        <div class="alert-item warning">
+          <div class="alert-icon">🤖</div>
+          <div class="alert-content">
+            <div class="alert-title">High Breakdown Risk</div>
+            <div class="alert-desc">EQ-2024-0031 · Score: 78/100 — Inspection recommended</div>
+          </div>
+        </div>
+        <div class="alert-item warning">
+          <div class="alert-icon">🪪</div>
+          <div class="alert-content">
+            <div class="alert-title">Driver License Expiring</div>
+            <div class="alert-desc">Ahmed Al-Rashidi · License expires in 18 days</div>
+          </div>
+        </div>
+        <div class="alert-item info">
+          <div class="alert-icon">🔄</div>
+          <div class="alert-content">
+            <div class="alert-title">3 Transfers Pending Approval</div>
+            <div class="alert-desc">Review and approve equipment transfers</div>
+          </div>
+        </div>
+        <div class="alert-item info">
+          <div class="alert-icon">💰</div>
+          <div class="alert-content">
+            <div class="alert-title">Replacement Alert</div>
+            <div class="alert-desc">EQ-2021-0015 · Repair cost at 64% of book value</div>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <button class="btn btn-ghost btn-sm" style="width:100%" onclick="navigate('alerts')">View All Alerts</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Top 5 TCO Assets</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:8px;background:var(--bg-tertiary);border-radius:var(--radius)">
+            <span style="color:var(--text-secondary)">Liebherr LR 1300 Crane</span>
+            <span style="font-weight:700;color:var(--accent)">QAR 1.2M</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:8px;background:var(--bg-tertiary);border-radius:var(--radius)">
+            <span style="color:var(--text-secondary)">Terex Demag AC 100</span>
+            <span style="font-weight:700;color:var(--accent)">QAR 980K</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:8px;background:var(--bg-tertiary);border-radius:var(--radius)">
+            <span style="color:var(--text-secondary)">Volvo FMX 460 Tipper</span>
+            <span style="font-weight:700;color:var(--accent)">QAR 640K</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:8px;background:var(--bg-tertiary);border-radius:var(--radius)">
+            <span style="color:var(--text-secondary)">CAT D8T Bulldozer</span>
+            <span style="font-weight:700;color:var(--accent)">QAR 590K</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:8px;background:var(--bg-tertiary);border-radius:var(--radius)">
+            <span style="color:var(--text-secondary)">Cummins 500kVA Generator</span>
+            <span style="font-weight:700;color:var(--accent)">QAR 420K</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ALERTS ========== -->
+<div class="page" id="page-alerts">
+  <div class="page-header">
+    <div><div class="page-title">Alerts & Notifications</div><div class="page-subtitle">Unified expiry, anomaly, and system alerts</div></div>
+    <div class="page-actions">
+      <button class="btn btn-secondary">Mark All Read</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <select class="filter-select"><option>All Types</option><option>Expiry</option><option>Fuel Anomaly</option><option>Maintenance</option><option>AI Risk</option><option>Transfer</option></select>
+    <select class="filter-select"><option>All Severities</option><option>Critical</option><option>Warning</option><option>Info</option></select>
+    <select class="filter-select"><option>Unacknowledged</option><option>All</option><option>Acknowledged</option></select>
+  </div>
+  <div class="card">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="alert-item critical">
+        <div class="notif-dot"></div>
+        <div class="alert-icon">🚨</div>
+        <div class="alert-content">
+          <div class="alert-title">ENGINE OIL CHANGE OVERDUE — EQ-2024-0003</div>
+          <div class="alert-desc">CAT 320 Excavator · Ras Laffan Site · Overdue by 3 days (4,253 hrs current vs 4,250 hrs due)</div>
+          <div class="alert-time">Generated: Today 06:00 GST</div>
+        </div>
+        <button class="btn btn-primary btn-sm">Open Job Card</button>
+      </div>
+      <div class="alert-item critical">
+        <div class="notif-dot"></div>
+        <div class="alert-icon">📋</div>
+        <div class="alert-content">
+          <div class="alert-title">INSURANCE EXPIRY — 4 ASSETS (30 DAYS)</div>
+          <div class="alert-desc">EQ-2024-0001, EQ-2024-0013, EQ-2024-0031, EQ-2024-0042 · Policies expire within 30 days</div>
+          <div class="alert-time">Generated: Today 06:00 GST</div>
+        </div>
+        <button class="btn btn-secondary btn-sm">View Assets</button>
+      </div>
+      <div class="alert-item warning">
+        <div class="notif-dot"></div>
+        <div class="alert-icon">⛽</div>
+        <div class="alert-content">
+          <div class="alert-title">FUEL ANOMALY — EQ-2024-0007</div>
+          <div class="alert-desc">Isuzu D-Max · Jubail Site · 22.8% overconsumption vs 30-day average · Driver: Mohammed Al-Farsi</div>
+          <div class="alert-time">Generated: Yesterday 14:32 GST</div>
+        </div>
+        <button class="btn btn-secondary btn-sm">Review</button>
+      </div>
+      <div class="alert-item warning">
+        <div class="notif-dot"></div>
+        <div class="alert-icon">🤖</div>
+        <div class="alert-content">
+          <div class="alert-title">HIGH BREAKDOWN RISK — EQ-2024-0031</div>
+          <div class="alert-desc">Liebherr LR 1300 Crane · AI Score: 78/100 · Top factors: 3 breakdowns last 90 days, fuel anomalies, overdue inspection</div>
+          <div class="alert-time">Generated: Today 06:00 GST</div>
+        </div>
+        <button class="btn btn-secondary btn-sm">View Score</button>
+      </div>
+      <div class="alert-item warning">
+        <div class="alert-icon">🪪</div>
+        <div class="alert-content">
+          <div class="alert-title">DRIVER LICENSE EXPIRING — Ahmed Al-Rashidi</div>
+          <div class="alert-desc">Heavy Vehicle License · Expires: 22 Jul 2026 (18 days) · Currently assigned: EQ-2024-0013 Volvo FMX 460</div>
+          <div class="alert-time">Generated: Today 06:00 GST</div>
+        </div>
+        <button class="btn btn-secondary btn-sm">View Driver</button>
+      </div>
+      <div class="alert-item warning">
+        <div class="alert-icon">🏗️</div>
+        <div class="alert-content">
+          <div class="alert-title">CRANE CERTIFICATION EXPIRING — EQ-2024-0031</div>
+          <div class="alert-desc">Liebherr LR 1300 · Load Test Certificate expires in 22 days · Bureau Veritas certification required</div>
+          <div class="alert-time">Generated: Today 06:00 GST</div>
+        </div>
+        <button class="btn btn-secondary btn-sm">View Cert</button>
+      </div>
+      <div class="alert-item info">
+        <div class="alert-icon">🔄</div>
+        <div class="alert-content">
+          <div class="alert-title">3 TRANSFER REQUESTS PENDING APPROVAL</div>
+          <div class="alert-desc">TR-2024-000041 · TR-2024-000042 · TR-2024-000043 · Awaiting Fleet Manager decision</div>
+          <div class="alert-time">Generated: Yesterday</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="navigate('transfer-queue')">Review Queue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ASSET LIST ========== -->
+<div class="page" id="page-asset-list">
+  <div class="page-header">
+    <div><div class="page-title">Asset Registry</div><div class="page-subtitle">50 assets across 5 categories</div></div>
+    <div class="page-actions">
+      <button class="btn btn-secondary">Export</button>
+      <button class="btn btn-primary" onclick="navigate('asset-register')">+ Register Asset</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input class="filter-input" placeholder="Search asset number, make, model..." style="flex:1;min-width:200px">
+    <select class="filter-select"><option>All Categories</option><option>Executive Vehicles</option><option>Personnel Transport</option><option>Heavy Equipment</option><option>Lifting Equipment</option><option>Static & Auxiliary</option></select>
+    <select class="filter-select"><option>All Statuses</option><option>Active</option><option>Under Maintenance</option><option>Idle</option><option>In Transit</option></select>
+    <select class="filter-select"><option>All Sites</option><option>Ras Laffan</option><option>Abu Dhabi</option><option>Jubail</option><option>Mesaieed</option></select>
+    <select class="filter-select"><option>All Ownership</option><option>Owned</option><option>Leased</option><option>Hired</option></select>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Asset No.</th><th>Description</th><th>Category</th><th>Status</th><th>Current Site</th><th>Operator</th><th>Alerts</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr onclick="navigate('asset-detail')">
+            <td class="td-mono">EQ-2024-0001</td>
+            <td><div class="td-primary">Toyota Land Cruiser</div><div class="td-secondary">4.0L V6 · Petrol · 2022</div></td>
+            <td><span class="badge badge-blue">Executive Vehicle</span></td>
+            <td><span class="status-dot dot-green"></span><span class="badge badge-green">Active</span></td>
+            <td>PRJ-QAT-2024-001<br><span class="td-secondary">Ras Laffan</span></td>
+            <td>Khalid Al-Mansouri</td>
+            <td><span class="badge badge-yellow">1 ⚠</span></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EQ-2024-0003</td>
+            <td><div class="td-primary">CAT 320 Excavator</div><div class="td-secondary">145 HP · Diesel · 2021</div></td>
+            <td><span class="badge badge-orange">Heavy Equipment</span></td>
+            <td><span class="status-dot dot-red"></span><span class="badge badge-red">Under Maintenance</span></td>
+            <td>PRJ-QAT-2024-001<br><span class="td-secondary">Ras Laffan</span></td>
+            <td>— (In workshop)</td>
+            <td><span class="badge badge-red">2 🚨</span></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EQ-2024-0013</td>
+            <td><div class="td-primary">Volvo FMX 460 Tipper</div><div class="td-secondary">460 HP · Diesel · 2020</div></td>
+            <td><span class="badge badge-orange">Heavy Equipment</span></td>
+            <td><span class="status-dot dot-green"></span><span class="badge badge-green">Active</span></td>
+            <td>PRJ-SAU-2024-002<br><span class="td-secondary">Jubail</span></td>
+            <td>Ahmed Al-Rashidi</td>
+            <td><span class="badge badge-yellow">1 ⚠</span></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EQ-2024-0031</td>
+            <td><div class="td-primary">Liebherr LR 1300 Crane</div><div class="td-secondary">300 Ton · Lattice Boom · 2019</div></td>
+            <td><span class="badge badge-purple">Lifting Equipment</span></td>
+            <td><span class="status-dot dot-green"></span><span class="badge badge-green">Active</span></td>
+            <td>PRJ-UAE-2024-003<br><span class="td-secondary">Abu Dhabi</span></td>
+            <td>Rajesh Kumar</td>
+            <td><span class="badge badge-red">3 🚨</span></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EQ-2024-0041</td>
+            <td><div class="td-primary">Cummins 500kVA Generator</div><div class="td-secondary">Diesel · Soundproof · 2022</div></td>
+            <td><span class="badge badge-gray">Static & Auxiliary</span></td>
+            <td><span class="status-dot dot-blue"></span><span class="badge badge-blue">In Transit</span></td>
+            <td>In Transit →<br><span class="td-secondary">Mesaieed</span></td>
+            <td>TR-2024-000041</td>
+            <td></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EQ-2024-0021</td>
+            <td><div class="td-primary">Ashok Leyland Falcon Bus</div><div class="td-secondary">60-Seater · Diesel · 2021</div></td>
+            <td><span class="badge badge-green">Personnel Transport</span></td>
+            <td><span class="status-dot dot-gray"></span><span class="badge badge-gray">Idle</span></td>
+            <td>YARD-HQ-01<br><span class="td-secondary">Main Yard</span></td>
+            <td>Unassigned</td>
+            <td></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text-secondary)">Showing 6 of 50 assets</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm">← Prev</button>
+        <button class="btn btn-secondary btn-sm">1</button>
+        <button class="btn btn-ghost btn-sm">2</button>
+        <button class="btn btn-ghost btn-sm">3</button>
+        <button class="btn btn-ghost btn-sm">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ASSET DETAIL ========== -->
+<div class="page" id="page-asset-detail">
+  <div class="breadcrumb">
+    <span onclick="navigate('asset-list')">Asset Registry</span>
+    <span class="sep">›</span>
+    <span>EQ-2024-0001</span>
+  </div>
+  <div class="page-header">
+    <div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="page-title">Toyota Land Cruiser</div>
+        <span class="badge badge-green">Active</span>
+        <span class="badge badge-yellow">1 Alert</span>
+      </div>
+      <div class="page-subtitle">EQ-2024-0001 · Executive & Light Commercial Vehicle · Owned</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-secondary">Edit Asset</button>
+      <button class="btn btn-primary" onclick="navigate('transfer-request')">Request Transfer</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">Overview</div>
+    <div class="tab">Engine Specs</div>
+    <div class="tab">Gulf Registration</div>
+    <div class="tab">Insurance</div>
+    <div class="tab">Purchase & Finance</div>
+    <div class="tab">Maintenance History</div>
+    <div class="tab">Fuel History</div>
+    <div class="tab">Transfers</div>
+    <div class="tab">Incidents</div>
+    <div class="tab">Documents</div>
+  </div>
+
+  <div class="grid-6-4">
+    <div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px">Asset Details</div>
+        <div class="detail-grid" style="gap:6px">
+          <div class="detail-row"><div class="detail-label">Asset Number</div><div class="detail-value td-mono">EQ-2024-0001</div></div>
+          <div class="detail-row"><div class="detail-label">Make & Model</div><div class="detail-value">Toyota Land Cruiser</div></div>
+          <div class="detail-row"><div class="detail-label">Year of Manufacture</div><div class="detail-value">2022</div></div>
+          <div class="detail-row"><div class="detail-label">Fuel Type</div><div class="detail-value">Petrol</div></div>
+          <div class="detail-row"><div class="detail-label">Ownership</div><div class="detail-value">Owned</div></div>
+          <div class="detail-row"><div class="detail-label">Color</div><div class="detail-value">Pearl White</div></div>
+          <div class="detail-row"><div class="detail-label">Cumulative KM</div><div class="detail-value">28,440 km</div></div>
+          <div class="detail-row"><div class="detail-label">Current Site</div><div class="detail-value">PRJ-QAT-2024-001 · Ras Laffan</div></div>
+          <div class="detail-row"><div class="detail-label">Current Operator</div><div class="detail-value">Khalid Al-Mansouri</div></div>
+          <div class="detail-row"><div class="detail-label">Plate Number</div><div class="detail-value td-mono">QAT-21443-A</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px">Gulf Registration</div>
+        <div class="detail-grid" style="gap:6px">
+          <div class="detail-row"><div class="detail-label">Plate Number</div><div class="detail-value td-mono">QAT-21443-A</div></div>
+          <div class="detail-row"><div class="detail-label">Country</div><div class="detail-value">Qatar (QAT)</div></div>
+          <div class="detail-row"><div class="detail-label">Mulkiya Number</div><div class="detail-value">MQ-2022-88341</div></div>
+          <div class="detail-row" style="background:var(--accent-yellow-dim);border:1px solid var(--accent-yellow)"><div class="detail-label">Registration Expiry</div><div class="detail-value" style="color:var(--accent-yellow)">22 Aug 2024 — 48 days</div></div>
+          <div class="detail-row"><div class="detail-label">Last Inspection</div><div class="detail-value">15 Jan 2024</div></div>
+          <div class="detail-row"><div class="detail-label">Traffic File No.</div><div class="detail-value">TF-QAT-441-2022</div></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">🤖 Predictive Risk Score</div>
+        <div class="score-ring" style="margin-bottom:14px">
+          <div class="score-circle low">24</div>
+          <span class="badge badge-green">Low Risk</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">Top contributing factors:</div>
+        <div style="display:flex;flex-direction:column;gap:4px;font-size:12px">
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Hours since last service</span><span style="color:var(--accent-green)">Low</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Breakdowns last 90 days</span><span style="color:var(--accent-green)">0</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Fuel anomalies (30d)</span><span style="color:var(--accent-green)">0</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Asset age</span><span style="color:var(--accent-green)">2 yrs</span></div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-dim)">Last computed: Today 06:00 GST · Model v2.1</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Cost Summary (YTD)</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Fuel Cost</span><span style="font-weight:700">QAR 18,420</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Maintenance Cost</span><span style="font-weight:700">QAR 4,200</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Insurance (pro-rata)</span><span style="font-weight:700">QAR 3,100</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Depreciation (YTD)</span><span style="font-weight:700">QAR 28,000</span></div>
+          <div class="sep" style="margin:6px 0"></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-primary);font-weight:700">Total TCO (YTD)</span><span style="font-weight:800;color:var(--accent)">QAR 53,720</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Quick Actions</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-secondary" style="width:100%;text-align:left" onclick="navigate('fuel-log')">⛽ Log Fuel Transaction</button>
+          <button class="btn btn-secondary" style="width:100%;text-align:left" onclick="navigate('breakdown')">🔧 Report Breakdown</button>
+          <button class="btn btn-secondary" style="width:100%;text-align:left" onclick="navigate('transfer-request')">🔄 Request Transfer</button>
+          <button class="btn btn-secondary" style="width:100%;text-align:left" onclick="navigate('incident-report')">⚠️ File Incident Report</button>
+          <button class="btn btn-danger" style="width:100%;text-align:left">📦 Initiate Write-Off</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ASSET REGISTER ========== -->
+<div class="page" id="page-asset-register">
+  <div class="breadcrumb">
+    <span onclick="navigate('asset-list')">Asset Registry</span>
+    <span class="sep">›</span>
+    <span>Register New Asset</span>
+  </div>
+  <div class="page-header">
+    <div><div class="page-title">Register New Asset</div><div class="page-subtitle">Complete all sections to register a new fleet asset</div></div>
+  </div>
+
+  <div class="stepper">
+    <div class="step active"><div class="step-circle">1</div><span>Identity</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-circle">2</div><span>Engine Specs</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-circle">3</div><span>Gulf Registration</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-circle">4</div><span>Purchase & Insurance</span></div>
+    <div class="step-line"></div>
+    <div class="step"><div class="step-circle">5</div><span>Review & Submit</span></div>
+  </div>
+
+  <div class="card">
+    <div class="form-section">
+      <div class="form-section-title">🚛 Asset Identity & Classification</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Asset Number <span class="required">*</span></label>
+          <input class="form-input" value="EQ-2024-0051" readonly style="color:var(--text-dim)">
+          <span class="form-hint">Auto-generated — cannot be changed</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ownership Type <span class="required">*</span></label>
+          <select class="form-select"><option>Owned</option><option>Leased</option><option>Hired</option><option>Subcontractor-Owned</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asset Category <span class="required">*</span></label>
+          <select class="form-select"><option>Select Category...</option><option>Executive & Light Commercial Vehicles</option><option>Personnel Transport</option><option>Heavy Earthmoving & Construction</option><option>Lifting & Heavy Shifting</option><option>Static Auxiliary & Power Generation</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asset Sub-Type <span class="required">*</span></label>
+          <select class="form-select"><option>Select Sub-Type...</option></select>
+          <span class="form-hint">Options load after category selection</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Make / Manufacturer <span class="required">*</span></label>
+          <input class="form-input" placeholder="e.g. Toyota, Caterpillar, Liebherr">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Model <span class="required">*</span></label>
+          <input class="form-input" placeholder="e.g. Land Cruiser, 320, LR 1300">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Year of Manufacture <span class="required">*</span></label>
+          <input class="form-input" type="number" placeholder="2022" min="1990" max="2030">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color</label>
+          <input class="form-input" placeholder="e.g. Pearl White, Yellow, Orange">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" placeholder="Any additional information about this asset..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">⚙️ Engine & Mechanical Specifications</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Engine Make <span class="required">*</span></label>
+          <input class="form-input" placeholder="e.g. Cummins, Caterpillar, Toyota">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Engine Model <span class="required">*</span></label>
+          <input class="form-input" placeholder="e.g. QSB6.7, C7.1, 1GR-FE">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Engine Serial Number <span class="required">*</span></label>
+          <input class="form-input" placeholder="Unique engine serial — from nameplate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Chassis / Frame Serial (VIN) <span class="required">*</span></label>
+          <input class="form-input" placeholder="17-character VIN or equipment frame serial">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fuel Type <span class="required">*</span></label>
+          <select class="form-select"><option>Diesel</option><option>Petrol</option><option>Dual-Fuel</option><option>Electric</option><option>Hybrid</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fuel Tank Capacity (Liters) <span class="required">*</span></label>
+          <input class="form-input" type="number" placeholder="e.g. 87">
+          <span class="form-hint">Used to validate fuel log entries</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rated Horsepower (HP)</label>
+          <input class="form-input" type="number" placeholder="e.g. 145">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Displacement (Liters)</label>
+          <input class="form-input" type="number" step="0.1" placeholder="e.g. 6.7">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Emission Standard</label>
+          <select class="form-select"><option>Euro 3</option><option>Euro 4</option><option>Euro 5</option><option>Tier 4 Final</option><option>Stage V</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Transmission Type</label>
+          <select class="form-select"><option>Automatic</option><option>Manual</option><option>CVT</option><option>Torque Converter</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Drive Configuration</label>
+          <select class="form-select"><option>4WD</option><option>2WD</option><option>AWD</option><option>Tracked</option><option>Wheeled</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cooling System</label>
+          <select class="form-select"><option>Water-Cooled</option><option>Air-Cooled</option><option>Oil-Cooled</option></select>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <div class="form-section-title" style="font-size:12px">OEM Service Intervals</div>
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Engine Oil Change (Hours)</label>
+            <input class="form-input" type="number" placeholder="e.g. 250">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Air Filter (Hours)</label>
+            <input class="form-input" type="number" placeholder="e.g. 500">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hydraulic Oil (Hours)</label>
+            <input class="form-input" type="number" placeholder="e.g. 2000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fuel Filter (Hours)</label>
+            <input class="form-input" type="number" placeholder="e.g. 500">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Greasing (Hours)</label>
+            <input class="form-input" type="number" placeholder="e.g. 50">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Full OEM Inspection (Hours)</label>
+            <input class="form-input" type="number" placeholder="e.g. 1000">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">🏛️ Gulf Registration (Road Vehicles Only)</div>
+      <div class="info-box">Only required for Executive Vehicles and Personnel Transport assets. Heavy equipment and static assets do not require Gulf registration.</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Country of Registration <span class="required">*</span></label>
+          <select class="form-select"><option>Qatar (QAT)</option><option>UAE (UAE)</option><option>Saudi Arabia (SAU)</option><option>Oman (OMN)</option><option>Kuwait (KWT)</option><option>Bahrain (BHR)</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Official Plate Number <span class="required">*</span></label>
+          <input class="form-input" placeholder="e.g. QAT-21443-A">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Registration Certificate No. (Mulkiya) <span class="required">*</span></label>
+          <input class="form-input" placeholder="e.g. MQ-2022-88341">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Registration Expiry Date <span class="required">*</span></label>
+          <input class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Traffic File Number</label>
+          <input class="form-input" placeholder="Optional">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Inspection Date</label>
+          <input class="form-input" type="date">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-ghost">Save Draft</button>
+      <button class="btn btn-secondary">← Back</button>
+      <button class="btn btn-primary">Next: Purchase & Insurance →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DRIVER LIST ========== -->
+<div class="page" id="page-driver-list">
+  <div class="page-header">
+    <div><div class="page-title">Driver Registry</div><div class="page-subtitle">20 registered drivers and operators</div></div>
+    <div class="page-actions">
+      <button class="btn btn-primary" onclick="navigate('driver-register')">+ Register Driver</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input class="filter-input" placeholder="Search name, employee ID, license..." style="flex:1;min-width:200px">
+    <select class="filter-select"><option>All License Categories</option><option>Light Vehicle</option><option>Heavy Vehicle</option><option>Crane Operator</option><option>Forklift</option><option>AWP</option></select>
+    <select class="filter-select"><option>All Risk Levels</option><option>Low Risk</option><option>Medium Risk</option><option>High Risk</option></select>
+    <select class="filter-select"><option>All Sites</option></select>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Employee ID</th><th>Name</th><th>License Category</th><th>License Expiry</th><th>Current Assignment</th><th>Risk Score</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="td-mono">EMP-2024-0042</td>
+            <td><div class="td-primary">Khalid Al-Mansouri</div><div class="td-secondary">Qatar · 8 yrs exp.</div></td>
+            <td><span class="badge badge-blue">Light Vehicle</span></td>
+            <td style="color:var(--accent-green)">15 Mar 2026</td>
+            <td>EQ-2024-0001 · Land Cruiser</td>
+            <td><span class="badge badge-green">Low — 82/100</span></td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EMP-2024-0031</td>
+            <td><div class="td-primary">Ahmed Al-Rashidi</div><div class="td-secondary">Saudi Arabia · 12 yrs exp.</div></td>
+            <td><span class="badge badge-orange">Heavy Vehicle</span></td>
+            <td style="color:var(--accent-red);font-weight:700">22 Jul 2026 — 18 days</td>
+            <td>EQ-2024-0013 · Volvo FMX</td>
+            <td><span class="badge badge-yellow">Medium — 61/100</span></td>
+            <td><span class="badge badge-yellow">⚠ License Expiring</span></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EMP-2024-0018</td>
+            <td><div class="td-primary">Rajesh Kumar</div><div class="td-secondary">India · 15 yrs exp.</div></td>
+            <td><span class="badge badge-purple">Crane Operator</span></td>
+            <td style="color:var(--accent-green)">10 Dec 2025</td>
+            <td>EQ-2024-0031 · Liebherr Crane</td>
+            <td><span class="badge badge-green">Low — 88/100</span></td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EMP-2024-0055</td>
+            <td><div class="td-primary">Mohammed Al-Farsi</div><div class="td-secondary">Qatar · 5 yrs exp.</div></td>
+            <td><span class="badge badge-orange">Heavy Vehicle</span></td>
+            <td style="color:var(--accent-green)">08 Sep 2025</td>
+            <td>EQ-2024-0007 · Isuzu D-Max</td>
+            <td><span class="badge badge-red">High — 38/100</span></td>
+            <td><span class="badge badge-red">High Risk</span></td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DRIVER REGISTER ========== -->
+<div class="page" id="page-driver-register">
+  <div class="page-header">
+    <div><div class="page-title">Register New Driver</div></div>
+  </div>
+  <div class="card">
+    <div class="form-section">
+      <div class="form-section-title">👤 Personal Information</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Employee ID <span class="required">*</span></label>
+          <input class="form-input" value="EMP-2024-0061" readonly style="color:var(--text-dim)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Full Name <span class="required">*</span></label>
+          <input class="form-input" placeholder="As per passport / national ID">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nationality <span class="required">*</span></label>
+          <input class="form-input" placeholder="e.g. Qatari, Indian, Filipino">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date of Birth <span class="required">*</span></label>
+          <input class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Job Title <span class="required">*</span></label>
+          <select class="form-select"><option>Heavy Vehicle Driver</option><option>Light Vehicle Driver</option><option>Crane Operator</option><option>Equipment Operator</option><option>Forklift Operator</option><option>Bus Driver</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Years of Experience</label>
+          <input class="form-input" type="number" placeholder="e.g. 8">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number <span class="required">*</span></label>
+          <input class="form-input" placeholder="+974 XXXX XXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Previous Employer</label>
+          <input class="form-input" placeholder="Previous company name">
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">🪪 License & Medical Information</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">License Number <span class="required">*</span></label>
+          <input class="form-input" placeholder="Official license number">
+        </div>
+        <div class="form-group">
+          <label class="form-label">License Category <span class="required">*</span></label>
+          <select class="form-select"><option>Light Vehicle</option><option>Heavy Vehicle</option><option>Crane Operator Certificate</option><option>Forklift Operator Certificate</option><option>Aerial Work Platform Certificate</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Issuing Authority <span class="required">*</span></label>
+          <input class="form-input" placeholder="e.g. Qatar Traffic Department, UAE RTA">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Issuing Country <span class="required">*</span></label>
+          <select class="form-select"><option>Qatar (QAT)</option><option>UAE (UAE)</option><option>Saudi Arabia (SAU)</option><option>India (IND)</option><option>Philippines (PHI)</option><option>Pakistan (PAK)</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">License Issue Date <span class="required">*</span></label>
+          <input class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">License Expiry Date <span class="required">*</span></label>
+          <input class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Medical Certificate Number <span class="required">*</span></label>
+          <input class="form-input" placeholder="Medical fitness certificate number">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Medical Certificate Expiry <span class="required">*</span></label>
+          <input class="form-input" type="date">
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">🆘 Emergency Contact</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Contact Name</label>
+          <input class="form-input" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact Phone</label>
+          <input class="form-input" placeholder="+974 XXXX XXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Relationship</label>
+          <select class="form-select"><option>Spouse</option><option>Parent</option><option>Sibling</option><option>Friend</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="navigate('driver-list')">Cancel</button>
+      <button class="btn btn-primary">Register Driver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== FUEL LOG ========== -->
+<div class="page" id="page-fuel-log">
+  <div class="page-header">
+    <div><div class="page-title">Log Fuel Transaction</div><div class="page-subtitle">Record a fueling event for a fleet asset</div></div>
+  </div>
+  <div class="grid-6-4">
+    <div class="card">
+      <div class="form-section">
+        <div class="form-section-title">⛽ Fueling Details</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Asset <span class="required">*</span></label>
+            <select class="form-select"><option>Search or select asset...</option><option>EQ-2024-0001 · Toyota Land Cruiser</option><option>EQ-2024-0003 · CAT 320 Excavator</option><option>EQ-2024-0013 · Volvo FMX 460</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Operator on Duty <span class="required">*</span></label>
+            <select class="form-select"><option>Select driver...</option><option>Khalid Al-Mansouri</option><option>Ahmed Al-Rashidi</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Project Site <span class="required">*</span></label>
+            <select class="form-select"><option>PRJ-QAT-2024-001 · Ras Laffan</option><option>PRJ-SAU-2024-002 · Jubail</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fuel Source <span class="required">*</span></label>
+            <select class="form-select"><option>Company Tank</option><option>External Station</option><option>Bowser</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Site Fuel Tank</label>
+            <select class="form-select"><option>TANK-PRJ001-D1 · Diesel · 2,840L remaining</option></select>
+            <span class="form-hint">Required if Fuel Source = Company Tank</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date & Time of Fueling <span class="required">*</span></label>
+            <input class="form-input" type="datetime-local">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fuel Type <span class="required">*</span></label>
+            <select class="form-select"><option>Diesel</option><option>Petrol</option></select>
+            <span class="form-hint">Must match asset fuel type (Petrol)</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantity Dispensed (Liters) <span class="required">*</span></label>
+            <input class="form-input" type="number" step="0.1" placeholder="e.g. 65.5">
+            <span class="form-hint">Tank capacity: 87L — entry blocked if exceeded</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Odometer Reading (km)</label>
+            <input class="form-input" type="number" placeholder="28,480">
+            <span class="form-hint">For vehicles only — must be ≥ previous reading</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hour Meter Reading (hrs)</label>
+            <input class="form-input" type="number" placeholder="For equipment only">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unit Price per Liter (QAR)</label>
+            <input class="form-input" type="number" step="0.001" placeholder="e.g. 2.350">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total Cost (QAR)</label>
+            <input class="form-input" placeholder="Auto-calculated" readonly style="color:var(--text-dim)">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Fuel Voucher / Reference Number</label>
+            <input class="form-input" placeholder="Voucher or purchase order reference">
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost">Clear Form</button>
+        <button class="btn btn-primary">Save Fuel Log</button>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Asset Fuel Summary</div>
+        <div class="info-box">Select an asset to see its fuel efficiency history</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">30-Day Avg Efficiency</span><span style="font-weight:700">12.4 km/L</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Last Fueling</span><span style="font-weight:700">2 days ago</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Last Qty</span><span style="font-weight:700">58 L</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Tank Capacity</span><span style="font-weight:700">87 L</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-secondary)">Fuel Type</span><span style="font-weight:700">Petrol</span></div>
+        </div>
+        <div class="sep"></div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">Anomaly Detection Threshold: ±20%</div>
+        <div style="font-size:12px;color:var(--text-secondary)">Entries deviating more than 20% from rolling average will be automatically flagged for Fleet Manager review.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Recent Fuel Logs — This Asset</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
+          <div style="background:var(--bg-tertiary);padding:8px;border-radius:var(--radius)">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:700">02 Jul 2026</span><span style="color:var(--accent-green)">58 L</span></div>
+            <div style="color:var(--text-dim)">12.8 km/L · Khalid Al-Mansouri</div>
+          </div>
+          <div style="background:var(--bg-tertiary);padding:8px;border-radius:var(--radius)">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:700">28 Jun 2026</span><span style="color:var(--accent-green)">62 L</span></div>
+            <div style="color:var(--text-dim)">11.9 km/L · Khalid Al-Mansouri</div>
+          </div>
+          <div style="background:var(--bg-tertiary);padding:8px;border-radius:var(--radius)">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:700">24 Jun 2026</span><span style="color:var(--accent-red)">81 L ⚠</span></div>
+            <div style="color:var(--text-dim)">9.1 km/L — Anomaly flagged</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== BREAKDOWN REPORT ========== -->
+<div class="page" id="page-breakdown">
+  <div class="page-header">
+    <div><div class="page-title">Report Equipment Breakdown</div></div>
+  </div>
+  <div class="warn-box">⚠️ Reporting a breakdown will immediately set the asset status to <strong>Under Maintenance</strong> and block any pending transfer dispatch until the job card is closed.</div>
+  <div class="card">
+    <div class="form-section">
+      <div class="form-section-title">🔧 Breakdown Details</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Breakdown Number</label>
+          <input class="form-input" value="BD-2024-000089" readonly style="color:var(--text-dim)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asset <span class="required">*</span></label>
+          <select class="form-select"><option>Search asset...</option><option>EQ-2024-0003 · CAT 320 Excavator</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Operator on Duty at Time of Breakdown <span class="required">*</span></label>
+          <select class="form-select"><option>Select operator...</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date & Time of Breakdown <span class="required">*</span></label>
+          <input class="form-input" type="datetime-local">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location <span class="required">*</span></label>
+          <select class="form-select"><option>PRJ-QAT-2024-001 · Ras Laffan</option><option>PRJ-SAU-2024-002 · Jubail</option><option>In Transit (active transfer)</option><option>YARD-HQ-01 · Main Yard</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fault Category <span class="required">*</span></label>
+          <select class="form-select"><option>Engine</option><option>Hydraulics</option><option>Electrical</option><option>Structural</option><option>Tyres</option><option>Brakes</option><option>Transmission</option><option>Cooling System</option><option>Other</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asset Self-Recovered?</label>
+          <select class="form-select"><option>No — stranded on site</option><option>Yes — drove to workshop</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Recovery Vehicle Required?</label>
+          <select class="form-select"><option>No</option><option>Yes</option></select>
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Symptom Description <span class="required">*</span></label>
+          <textarea class="form-textarea" placeholder="Describe what happened — what the operator observed, sounds, warning lights, etc."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="navigate('jobcard-list')">Cancel</button>
+      <button class="btn btn-danger">Report Breakdown & Set Under Maintenance</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== JOB CARD LIST ========== -->
+<div class="page" id="page-jobcard-list">
+  <div class="page-header">
+    <div><div class="page-title">Maintenance Job Cards</div></div>
+    <div class="page-actions">
+      <button class="btn btn-primary">+ New Job Card</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <select class="filter-select"><option>All Statuses</option><option>Open</option><option>In Progress</option><option>Parts Pending</option><option>Completed — Pending Approval</option><option>Closed</option></select>
+    <select class="filter-select"><option>All Types</option><option>Preventive</option><option>Corrective</option></select>
+    <select class="filter-select"><option>All Workshops</option><option>Internal</option><option>External Vendor</option></select>
+    <input class="filter-input" placeholder="Search job card number or asset..." style="flex:1">
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Job Card No.</th><th>Asset</th><th>Type</th><th>Fault / Service</th><th>Status</th><th>Total Cost</th><th>Opened</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="td-mono">JC-2024-000341</td>
+            <td><div class="td-primary">CAT 320 Excavator</div><div class="td-secondary">EQ-2024-0003</div></td>
+            <td><span class="badge badge-red">Corrective</span></td>
+            <td>Engine · Hydraulic pump failure</td>
+            <td><span class="badge badge-yellow">Parts Pending</span></td>
+            <td>QAR 14,200</td>
+            <td>01 Jul 2026</td>
+            <td><button class="btn btn-primary btn-sm">Open</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">JC-2024-000340</td>
+            <td><div class="td-primary">Liebherr LR 1300</div><div class="td-secondary">EQ-2024-0031</div></td>
+            <td><span class="badge badge-blue">Preventive</span></td>
+            <td>Engine Oil Change · 2,000hr service</td>
+            <td><span class="badge badge-orange">In Progress</span></td>
+            <td>QAR 3,800</td>
+            <td>03 Jul 2026</td>
+            <td><button class="btn btn-primary btn-sm">Open</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">JC-2024-000338</td>
+            <td><div class="td-primary">Volvo FMX 460</div><div class="td-secondary">EQ-2024-0013</div></td>
+            <td><span class="badge badge-blue">Preventive</span></td>
+            <td>Full OEM Inspection · 10,000km</td>
+            <td><span class="badge badge-green">Completed — Pending Approval</span></td>
+            <td>QAR 8,500</td>
+            <td>28 Jun 2026</td>
+            <td><button class="btn btn-success btn-sm">Approve & Close</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">JC-2024-000330</td>
+            <td><div class="td-primary">Toyota Hilux</div><div class="td-secondary">EQ-2024-0003</div></td>
+            <td><span class="badge badge-blue">Preventive</span></td>
+            <td>Air Filter + Fuel Filter</td>
+            <td><span class="badge badge-gray">Closed</span></td>
+            <td>QAR 1,200</td>
+            <td>20 Jun 2026</td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PM SCHEDULE ========== -->
+<div class="page" id="page-pm-schedule">
+  <div class="page-header">
+    <div><div class="page-title">Preventive Maintenance Schedule</div><div class="page-subtitle">OEM-driven service schedule across all active assets</div></div>
+    <div class="page-actions">
+      <select class="filter-select"><option>Due within 7 days</option><option>Due within 14 days</option><option>Due within 30 days</option><option>All Upcoming</option><option>Overdue Only</option></select>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Asset</th><th>Service Type</th><th>OEM Interval</th><th>Last Done</th><th>Next Due</th><th>Current Meter</th><th>Overdue Status</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="td-primary">CAT 320 Excavator</div><div class="td-mono">EQ-2024-0003</div></td>
+            <td>Engine Oil Change</td>
+            <td>250 hrs</td>
+            <td>4,000 hrs · 10 Mar 2026</td>
+            <td style="color:var(--accent-red);font-weight:700">4,250 hrs — OVERDUE</td>
+            <td>4,253 hrs</td>
+            <td><span class="badge badge-red">Critical +3hrs</span></td>
+            <td><button class="btn btn-primary btn-sm">Open Job Card</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Liebherr LR 1300</div><div class="td-mono">EQ-2024-0031</div></td>
+            <td>Full OEM Inspection</td>
+            <td>1000 hrs</td>
+            <td>1,200 hrs · 01 May 2026</td>
+            <td style="color:var(--accent-yellow);font-weight:700">2,200 hrs · 9 Jul 2026</td>
+            <td>2,198 hrs</td>
+            <td><span class="badge badge-yellow">Due in 5 days</span></td>
+            <td><button class="btn btn-secondary btn-sm">Schedule</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Toyota Land Cruiser</div><div class="td-mono">EQ-2024-0001</div></td>
+            <td>Air Filter Replacement</td>
+            <td>30,000 km</td>
+            <td>0 km · Jan 2022</td>
+            <td>30,000 km · 22 Jul 2026</td>
+            <td>28,440 km</td>
+            <td><span class="badge badge-blue">Due in 18 days</span></td>
+            <td><button class="btn btn-ghost btn-sm">Schedule</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Cummins 500kVA Gen</div><div class="td-mono">EQ-2024-0041</div></td>
+            <td>Engine Oil Change</td>
+            <td>500 hrs</td>
+            <td>1,500 hrs · 15 Jun 2026</td>
+            <td>2,000 hrs · 28 Jul 2026</td>
+            <td>1,680 hrs</td>
+            <td><span class="badge badge-gray">OK — 24 days</span></td>
+            <td><button class="btn btn-ghost btn-sm">Schedule</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TRANSFER REQUEST ========== -->
+<div class="page" id="page-transfer-request">
+  <div class="page-header">
+    <div><div class="page-title">Request Equipment Transfer</div></div>
+  </div>
+  <div class="card">
+    <div class="form-section">
+      <div class="form-section-title">🔄 Transfer Details</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Transfer Number</label>
+          <input class="form-input" value="TR-2024-000044" readonly style="color:var(--text-dim)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asset to Transfer <span class="required">*</span></label>
+          <select class="form-select"><option>Search asset...</option><option>EQ-2024-0001 · Toyota Land Cruiser — Active · Ras Laffan</option><option>EQ-2024-0041 · Cummins Generator — Idle · Main Yard</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Source Location</label>
+          <input class="form-input" value="PRJ-QAT-2024-001 · Ras Laffan" readonly style="color:var(--text-dim)">
+          <span class="form-hint">Auto-populated from current asset assignment</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destination <span class="required">*</span></label>
+          <select class="form-select"><option>Select destination...</option><option>PRJ-SAU-2024-002 · Jubail Industrial City</option><option>PRJ-UAE-2024-003 · Abu Dhabi Refinery</option><option>PRJ-QAT-2024-005 · Mesaieed Industrial</option><option>YARD-HQ-01 · Main Equipment Yard</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Transfer Reason <span class="required">*</span></label>
+          <select class="form-select"><option>Project Mobilization</option><option>Project Demobilization</option><option>Reallocation</option><option>Breakdown Recovery</option><option>Return to Yard</option><option>Other</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Required By Date</label>
+          <input class="form-input" type="date">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Reason Details / Justification</label>
+          <textarea class="form-textarea" placeholder="Provide context for why this transfer is needed..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="navigate('transfer-history')">Cancel</button>
+      <button class="btn btn-primary">Submit Transfer Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TRANSFER QUEUE ========== -->
+<div class="page" id="page-transfer-queue">
+  <div class="page-header">
+    <div><div class="page-title">Transfer Approval Queue</div><div class="page-subtitle">3 transfers pending Fleet Manager decision</div></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div>
+            <div style="font-weight:700;color:var(--text-primary)">TR-2024-000041</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:3px">Requested by: Ali Hassan (Site Engineer) · 2 days ago</div>
+          </div>
+          <span class="badge badge-yellow">Pending Approval</span>
+        </div>
+        <div class="detail-grid" style="gap:6px;margin-bottom:12px">
+          <div class="detail-row"><div class="detail-label">Asset</div><div class="detail-value">EQ-2024-0041 · Cummins 500kVA Generator</div></div>
+          <div class="detail-row"><div class="detail-label">Reason</div><div class="detail-value">Project Mobilization</div></div>
+          <div class="detail-row"><div class="detail-label">From</div><div class="detail-value">YARD-HQ-01 · Main Equipment Yard</div></div>
+          <div class="detail-row"><div class="detail-label">To</div><div class="detail-value">PRJ-QAT-2024-005 · Mesaieed Industrial</div></div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:6px">COMPLIANCE CHECK</div>
+          <div class="checklist">
+            <div class="checklist-item"><span class="check-icon">✅</span><span class="check-label">Insurance Policy — Valid until 15 Dec 2026</span><span class="check-status pass">PASS</span></div>
+            <div class="checklist-item"><span class="check-icon">✅</span><span class="check-label">No open maintenance job cards</span><span class="check-status pass">PASS</span></div>
+            <div class="checklist-item"><span class="check-icon">➖</span><span class="check-label">Gulf Registration — Not required (static equipment)</span><span class="check-status na">N/A</span></div>
+            <div class="checklist-item"><span class="check-icon">➖</span><span class="check-label">Driver License — No company driver assigned yet</span><span class="check-status na">N/A</span></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Approval Remarks</label>
+          <input class="form-input" placeholder="Enter remarks (optional for approval, required for rejection)">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success">✅ Approve Transfer</button>
+          <button class="btn btn-danger">✗ Reject</button>
+        </div>
+      </div>
+
+      <div style="background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div>
+            <div style="font-weight:700">TR-2024-000042</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:3px">Requested by: Tariq Al-Amri (Site Engineer) · 1 day ago</div>
+          </div>
+          <span class="badge badge-yellow">Pending Approval</span>
+        </div>
+        <div class="detail-grid" style="gap:6px;margin-bottom:12px">
+          <div class="detail-row"><div class="detail-label">Asset</div><div class="detail-value">EQ-2024-0013 · Volvo FMX 460 Tipper</div></div>
+          <div class="detail-row"><div class="detail-label">Reason</div><div class="detail-value">Reallocation</div></div>
+          <div class="detail-row"><div class="detail-label">From</div><div class="detail-value">PRJ-SAU-2024-002 · Jubail</div></div>
+          <div class="detail-row"><div class="detail-label">To</div><div class="detail-value">PRJ-UAE-2024-003 · Abu Dhabi Refinery</div></div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div class="checklist">
+            <div class="checklist-item"><span class="check-icon">✅</span><span class="check-label">Insurance — Valid</span><span class="check-status pass">PASS</span></div>
+            <div class="checklist-item"><span class="check-icon">❌</span><span class="check-label">Driver Ahmed Al-Rashidi — License expires in 18 days</span><span class="check-status fail">WARNING</span></div>
+            <div class="checklist-item"><span class="check-icon">✅</span><span class="check-label">Gulf Registration — Valid until 15 Sep 2026</span><span class="check-status pass">PASS</span></div>
+            <div class="checklist-item"><span class="check-icon">✅</span><span class="check-label">No open maintenance job cards</span><span class="check-status pass">PASS</span></div>
+          </div>
+        </div>
+        <div class="warn-box">⚠️ Driver license expires in 18 days. Approval permitted but Fleet Manager must acknowledge this risk. Consider assigning an alternative driver.</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success">✅ Approve (Acknowledge Risk)</button>
+          <button class="btn btn-danger">✗ Reject</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TRANSFER HISTORY ========== -->
+<div class="page" id="page-transfer-history">
+  <div class="page-header">
+    <div><div class="page-title">Transfer History</div><div class="page-subtitle">Chain of custody log for all equipment movements</div></div>
+    <div class="page-actions">
+      <button class="btn btn-secondary">Export to PDF</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input class="filter-input" placeholder="Search transfer number or asset..." style="flex:1">
+    <select class="filter-select"><option>All Statuses</option><option>Completed</option><option>In Transit</option><option>Approved</option><option>Rejected</option></select>
+    <input class="filter-input" type="date" placeholder="From date">
+    <input class="filter-input" type="date" placeholder="To date">
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Transfer No.</th><th>Asset</th><th>From</th><th>To</th><th>Requested By</th><th>Status</th><th>Gate Pass</th><th>Duration</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="td-mono">TR-2024-000040</td>
+            <td><div class="td-primary">CAT 950 Wheel Loader</div><div class="td-secondary">EQ-2024-0017</div></td>
+            <td>YARD-HQ-01</td>
+            <td>PRJ-QAT-2024-001</td>
+            <td>Ali Hassan</td>
+            <td><span class="badge badge-green">Completed</span></td>
+            <td class="td-mono">GP-20240628</td>
+            <td>14 hrs</td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">TR-2024-000041</td>
+            <td><div class="td-primary">Cummins 500kVA Gen</div><div class="td-secondary">EQ-2024-0041</div></td>
+            <td>YARD-HQ-01</td>
+            <td>PRJ-QAT-2024-005</td>
+            <td>Ali Hassan</td>
+            <td><span class="badge badge-blue">In Transit</span></td>
+            <td class="td-mono">GP-20240703</td>
+            <td>In progress</td>
+            <td><button class="btn btn-ghost btn-sm">Track</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">TR-2024-000038</td>
+            <td><div class="td-primary">JCB 3CX Backhoe</div><div class="td-secondary">EQ-2024-0015</div></td>
+            <td>PRJ-UAE-2024-003</td>
+            <td>PRJ-SAU-2024-002</td>
+            <td>Tariq Al-Amri</td>
+            <td><span class="badge badge-red">Rejected</span></td>
+            <td>—</td>
+            <td>—</td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== INCIDENT REPORT ========== -->
+<div class="page" id="page-incident-report">
+  <div class="page-header">
+    <div><div class="page-title">File Incident Report</div></div>
+  </div>
+  <div class="card">
+    <div class="form-section">
+      <div class="form-section-title">⚠️ Incident Details</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Incident Number</label>
+          <input class="form-input" value="INC-2024-000031" readonly style="color:var(--text-dim)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Incident Type <span class="required">*</span></label>
+          <select class="form-select"><option>Minor Accident</option><option>Major Accident</option><option>Near Miss</option><option>Fire</option><option>Equipment Tip-Over</option><option>Falling Object</option><option>Third-Party Property Damage</option><option>Personal Injury</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asset Involved <span class="required">*</span></label>
+          <select class="form-select"><option>Search asset...</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Operator at Time of Incident <span class="required">*</span></label>
+          <select class="form-select"><option>Select operator...</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date & Time of Incident <span class="required">*</span></label>
+          <input class="form-input" type="datetime-local">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location <span class="required">*</span></label>
+          <select class="form-select"><option>PRJ-QAT-2024-001 · Ras Laffan</option><option>In Transit</option><option>YARD-HQ-01 · Main Yard</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Third Party Involved? <span class="required">*</span></label>
+          <select class="form-select"><option>No</option><option>Yes</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Personal Injury Occurred? <span class="required">*</span></label>
+          <select class="form-select"><option>No</option><option>Yes</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Police Report Number</label>
+          <input class="form-input" placeholder="Required for Major Accident">
+          <span class="form-hint">Muroor / Traffic Department reference number</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estimated Damage Cost (QAR)</label>
+          <input class="form-input" type="number" placeholder="Approximate repair cost">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Incident Description <span class="required">*</span></label>
+          <textarea class="form-textarea" placeholder="Describe what happened in detail — sequence of events, contributing factors..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">📎 Attach Evidence</div>
+      <div style="background:var(--bg-tertiary);border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--text-secondary);font-size:13px">
+        <div style="font-size:24px;margin-bottom:8px">📷</div>
+        <div>Drag photos here, or <span style="color:var(--accent);cursor:pointer">browse files</span></div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px">JPG, PNG, PDF · Max 10MB per file</div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost">Cancel</button>
+      <button class="btn btn-danger">Submit Incident Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== INCIDENT LIST ========== -->
+<div class="page" id="page-incident-list">
+  <div class="page-header">
+    <div><div class="page-title">Incident Records</div></div>
+    <div class="page-actions">
+      <button class="btn btn-danger" onclick="navigate('incident-report')">+ File Incident</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Incident No.</th><th>Type</th><th>Asset</th><th>Driver</th><th>Date</th><th>Site</th><th>Status</th><th>Police Ref</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="td-mono">INC-2024-000030</td>
+            <td><span class="badge badge-yellow">Minor Accident</span></td>
+            <td>EQ-2024-0007 · Isuzu D-Max</td>
+            <td>Mohammed Al-Farsi</td>
+            <td>28 Jun 2026</td>
+            <td>Jubail</td>
+            <td><span class="badge badge-orange">Under Investigation</span></td>
+            <td class="td-mono">MR-JUB-2024-441</td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">INC-2024-000029</td>
+            <td><span class="badge badge-gray">Near Miss</span></td>
+            <td>EQ-2024-0031 · Liebherr Crane</td>
+            <td>Rajesh Kumar</td>
+            <td>15 Jun 2026</td>
+            <td>Abu Dhabi</td>
+            <td><span class="badge badge-green">Closed</span></td>
+            <td>—</td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PROJECT LIST ========== -->
+<div class="page" id="page-project-list">
+  <div class="page-header">
+    <div><div class="page-title">Projects & Sites</div></div>
+    <div class="page-actions">
+      <button class="btn btn-primary" onclick="navigate('project-register')">+ New Project</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Project Code</th><th>Name</th><th>Client</th><th>Sector</th><th>Country</th><th>Status</th><th>Equipment</th><th>PM</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="td-mono">PRJ-QAT-2024-001</td>
+            <td><div class="td-primary">Ras Laffan LNG Expansion</div><div class="td-secondary">Started Jan 2024</div></td>
+            <td>QatarEnergy</td>
+            <td><span class="badge badge-blue">Oil & Gas</span></td>
+            <td>Qatar</td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td style="font-weight:700">18</td>
+            <td>Santhosh Kumar</td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">PRJ-SAU-2024-002</td>
+            <td><div class="td-primary">Jubail Refinery Turnaround</div><div class="td-secondary">Started Mar 2024</div></td>
+            <td>SABIC</td>
+            <td><span class="badge badge-orange">Refinery</span></td>
+            <td>Saudi Arabia</td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td style="font-weight:700">14</td>
+            <td>Ali Al-Hussain</td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">PRJ-UAE-2024-003</td>
+            <td><div class="td-primary">Abu Dhabi Offshore Platform</div><div class="td-secondary">Started Feb 2024</div></td>
+            <td>ADNOC</td>
+            <td><span class="badge badge-blue">Oil & Gas</span></td>
+            <td>UAE</td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td style="font-weight:700">10</td>
+            <td>Raj Pillai</td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PROJECT REGISTER ========== -->
+<div class="page" id="page-project-register">
+  <div class="page-header">
+    <div><div class="page-title">Register New Project</div></div>
+  </div>
+  <div class="card">
+    <div class="form-section">
+      <div class="form-section-title">🏗️ Project Information</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Project Code</label>
+          <input class="form-input" value="PRJ-QAT-2024-006" readonly style="color:var(--text-dim)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Project Name <span class="required">*</span></label>
+          <input class="form-input" placeholder="Full project name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Client Name <span class="required">*</span></label>
+          <input class="form-input" placeholder="Client organization name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sector <span class="required">*</span></label>
+          <select class="form-select"><option>Oil & Gas</option><option>Refinery</option><option>Infrastructure</option><option>Marine</option><option>Power</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Country <span class="required">*</span></label>
+          <select class="form-select"><option>Qatar</option><option>UAE</option><option>Saudi Arabia</option><option>Oman</option><option>Kuwait</option><option>Bahrain</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">City / Location</label>
+          <input class="form-input" placeholder="e.g. Ras Laffan, Jubail, Abu Dhabi">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Start Date <span class="required">*</span></label>
+          <input class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Planned Completion Date <span class="required">*</span></label>
+          <input class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Project Manager <span class="required">*</span></label>
+          <select class="form-select"><option>Select PM...</option><option>Santhosh Kumar</option><option>Ali Al-Hussain</option><option>Raj Pillai</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Site GPS Latitude</label>
+          <input class="form-input" type="number" step="0.0000001" placeholder="e.g. 26.1551">
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="navigate('project-list')">Cancel</button>
+      <button class="btn btn-primary">Create Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ANALYTICS UTILIZATION ========== -->
+<div class="page" id="page-analytics-utilization">
+  <div class="page-header">
+    <div><div class="page-title">Fleet Utilization Analytics</div></div>
+    <div class="page-actions">
+      <select class="filter-select"><option>This Month</option><option>Last 3 Months</option><option>Last 12 Months</option></select>
+      <button class="btn btn-secondary">Export</button>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Overall Utilization</div><div class="kpi-value">74.2%</div><div class="kpi-change up">↑ 3.1%</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Available Hours</div><div class="kpi-value">12,400</div><div class="kpi-change neutral">This month</div></div>
+    <div class="kpi-card"><div class="kpi-label">Productive Hours</div><div class="kpi-value">9,201</div><div class="kpi-change up">↑ 420 hrs</div></div>
+    <div class="kpi-card"><div class="kpi-label">Idle Hours</div><div class="kpi-value">1,840</div><div class="kpi-change down">↓ 120 hrs</div></div>
+    <div class="kpi-card"><div class="kpi-label">Downtime Hours</div><div class="kpi-value">1,359</div><div class="kpi-change up">↓ 88 hrs</div></div>
+    <div class="kpi-card"><div class="kpi-label">Avg MTBF</div><div class="kpi-value">412 hrs</div><div class="kpi-change down">↓ 18 hrs</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">Utilization by Asset Category</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text-secondary)">Heavy Earthmoving</span><span style="font-weight:700">81%</span></div><div class="progress-bar"><div class="progress-fill" style="width:81%;background:var(--accent-green)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text-secondary)">Lifting Equipment</span><span style="font-weight:700">76%</span></div><div class="progress-bar"><div class="progress-fill" style="width:76%;background:var(--accent-green)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text-secondary)">Personnel Transport</span><span style="font-weight:700">72%</span></div><div class="progress-bar"><div class="progress-fill" style="width:72%;background:var(--accent-yellow)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text-secondary)">Executive Vehicles</span><span style="font-weight:700">68%</span></div><div class="progress-bar"><div class="progress-fill" style="width:68%;background:var(--accent-yellow)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text-secondary)">Static & Auxiliary</span><span style="font-weight:700">58%</span></div><div class="progress-bar"><div class="progress-fill" style="width:58%;background:var(--accent-red)"></div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px">MTBF & MTTR Trend — Last 6 Months</div>
+      <div class="bar-chart" style="height:100px">
+        <div class="bar-col"><div class="bar-fill" style="height:75%"></div><div class="bar-label">Feb</div></div>
+        <div class="bar-col"><div class="bar-fill" style="height:80%"></div><div class="bar-label">Mar</div></div>
+        <div class="bar-col"><div class="bar-fill" style="height:85%"></div><div class="bar-label">Apr</div></div>
+        <div class="bar-col"><div class="bar-fill" style="height:78%"></div><div class="bar-label">May</div></div>
+        <div class="bar-col"><div class="bar-fill" style="height:82%"></div><div class="bar-label">Jun</div></div>
+        <div class="bar-col"><div class="bar-fill" style="height:88%;background:var(--accent)"></div><div class="bar-label">Jul</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:6px;text-align:center">MTBF hours (normalized) — Rising trend = improving fleet health</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ANALYTICS COST ========== -->
+<div class="page" id="page-analytics-cost">
+  <div class="page-header">
+    <div><div class="page-title">Cost Analytics</div></div>
+    <div class="page-actions">
+      <select class="filter-select"><option>This Year</option><option>Last Year</option></select>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Total Fleet TCO (YTD)</div><div class="kpi-value">QAR 4.2M</div><div class="kpi-change down">↑ 8% vs last year</div></div>
+    <div class="kpi-card"><div class="kpi-label">Fuel Cost (YTD)</div><div class="kpi-value">QAR 1.8M</div><div class="kpi-change down">43% of TCO</div></div>
+    <div class="kpi-card"><div class="kpi-label">Maintenance Cost (YTD)</div><div class="kpi-value">QAR 680K</div><div class="kpi-change up">↓ 4%</div></div>
+    <div class="kpi-card"><div class="kpi-label">Corrective vs Preventive</div><div class="kpi-value">62/38</div><div class="kpi-change down">⚠ High corrective</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:14px">Maintenance Cost Breakdown — Preventive vs Corrective</div>
+    <div style="display:flex;gap:24px">
+      <div class="bar-chart" style="flex:1;height:120px">
+        <div class="bar-col">
+          <div style="display:flex;flex-direction:column;gap:2px;width:100%;align-items:flex-end;height:80%">
+            <div style="width:100%;background:var(--accent-red);opacity:0.7;border-radius:3px 3px 0 0" data-height="60%"></div>
+            <div style="width:100%;background:var(--accent-blue);opacity:0.7" data-height="40%"></div>
+          </div>
+          <div class="bar-label">Q1</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;font-size:12px">
+        <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;background:var(--accent-red);opacity:0.7;border-radius:2px"></div><span style="color:var(--text-secondary)">Corrective (Breakdown) — QAR 422K</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;background:var(--accent-blue);opacity:0.7;border-radius:2px"></div><span style="color:var(--text-secondary)">Preventive (Scheduled) — QAR 258K</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== FUEL HEATMAP ========== -->
+<div class="page" id="page-analytics-fuel-heat">
+  <div class="page-header">
+    <div><div class="page-title">Fuel Consumption Heatmap</div><div class="page-subtitle">Site-level fuel spend — intensity view</div></div>
+  </div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px">
+      <div style="background:#f85149;padding:20px;border-radius:var(--radius);text-align:center">
+        <div style="font-size:11px;font-weight:700;color:#fff;opacity:0.8">Ras Laffan</div>
+        <div style="font-size:20px;font-weight:800;color:#fff">QAR 68K</div>
+        <div style="font-size:11px;color:#fff;opacity:0.7">18 assets · This month</div>
+      </div>
+      <div style="background:#d29922;padding:20px;border-radius:var(--radius);text-align:center">
+        <div style="font-size:11px;font-weight:700;color:#fff;opacity:0.8">Abu Dhabi</div>
+        <div style="font-size:20px;font-weight:800;color:#fff">QAR 44K</div>
+        <div style="font-size:11px;color:#fff;opacity:0.7">10 assets · This month</div>
+      </div>
+      <div style="background:#d29922;padding:20px;border-radius:var(--radius);text-align:center">
+        <div style="font-size:11px;font-weight:700;color:#fff;opacity:0.8">Jubail</div>
+        <div style="font-size:20px;font-weight:800;color:#fff">QAR 38K</div>
+        <div style="font-size:11px;color:#fff;opacity:0.7">14 assets · This month</div>
+      </div>
+      <div style="background:#3fb950;padding:20px;border-radius:var(--radius);text-align:center">
+        <div style="font-size:11px;font-weight:700;color:#fff;opacity:0.8">Mesaieed</div>
+        <div style="font-size:20px;font-weight:800;color:#fff">QAR 22K</div>
+        <div style="font-size:11px;color:#fff;opacity:0.7">6 assets · This month</div>
+      </div>
+      <div style="background:#3fb950;padding:20px;border-radius:var(--radius);text-align:center">
+        <div style="font-size:11px;font-weight:700;color:#fff;opacity:0.8">Sharjah</div>
+        <div style="font-size:20px;font-weight:800;color:#fff">QAR 12K</div>
+        <div style="font-size:11px;color:#fff;opacity:0.7">4 assets · This month</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary)">
+      <div style="width:14px;height:14px;background:#3fb950;border-radius:2px"></div><span>Low</span>
+      <div style="width:14px;height:14px;background:#d29922;border-radius:2px;margin-left:8px"></div><span>Medium</span>
+      <div style="width:14px;height:14px;background:#f85149;border-radius:2px;margin-left:8px"></div><span>High (top 20%)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PREDICTIVE MAINTENANCE ========== -->
+<div class="page" id="page-intel-predictive">
+  <div class="page-header">
+    <div><div class="page-title">Predictive Maintenance Scores</div><div class="page-subtitle">AI-computed breakdown probability — updated nightly at 06:00 GST · Model v2.1</div></div>
+    <div class="page-actions">
+      <select class="filter-select"><option>All Risk Levels</option><option>High Risk Only</option><option>Medium + High</option></select>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">High Risk Assets</div><div class="kpi-value" style="color:var(--accent-red)">4</div><div class="kpi-change down">↑ 1 from yesterday</div></div>
+    <div class="kpi-card"><div class="kpi-label">Medium Risk</div><div class="kpi-value" style="color:var(--accent-yellow)">12</div><div class="kpi-change neutral">Unchanged</div></div>
+    <div class="kpi-card"><div class="kpi-label">Low Risk</div><div class="kpi-value" style="color:var(--accent-green)">34</div><div class="kpi-change up">↑ 1 from yesterday</div></div>
+    <div class="kpi-card"><div class="kpi-label">Model F1-Score</div><div class="kpi-value">0.81</div><div class="kpi-change up">Exceeds 0.75 threshold</div></div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Asset</th><th>Risk Score</th><th>Risk Level</th><th>Top Factor 1</th><th>Top Factor 2</th><th>Top Factor 3</th><th>Recommended Action</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="td-primary">Liebherr LR 1300</div><div class="td-mono">EQ-2024-0031</div></td>
+            <td><span style="font-size:18px;font-weight:800;color:var(--accent-red)">78</span>/100</td>
+            <td><span class="badge badge-red">High Risk</span></td>
+            <td style="color:var(--accent-red)">3 breakdowns / 90d</td>
+            <td>Fuel anomalies: 2</td>
+            <td>Overdue inspection</td>
+            <td>Schedule full OEM inspection immediately</td>
+            <td><button class="btn btn-primary btn-sm" onclick="navigate('jobcard-list')">Open Job Card</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">CAT D8T Bulldozer</div><div class="td-mono">EQ-2021-0019</div></td>
+            <td><span style="font-size:18px;font-weight:800;color:var(--accent-red)">72</span>/100</td>
+            <td><span class="badge badge-red">High Risk</span></td>
+            <td style="color:var(--accent-red)">Age: 5 years</td>
+            <td>1 breakdown / 90d</td>
+            <td>Repair cost 58% of BV</td>
+            <td>Comprehensive inspection + cost review</td>
+            <td><button class="btn btn-primary btn-sm">Open Job Card</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Komatsu PC210</div><div class="td-mono">EQ-2024-0004</div></td>
+            <td><span style="font-size:18px;font-weight:800;color:var(--accent-yellow)">55</span>/100</td>
+            <td><span class="badge badge-yellow">Medium Risk</span></td>
+            <td style="color:var(--accent-yellow)">1 breakdown / 90d</td>
+            <td>Service due in 5 days</td>
+            <td>Fuel anomaly: 1</td>
+            <td>Schedule preventive service before due date</td>
+            <td><button class="btn btn-secondary btn-sm">Schedule PM</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Toyota Land Cruiser</div><div class="td-mono">EQ-2024-0001</div></td>
+            <td><span style="font-size:18px;font-weight:800;color:var(--accent-green)">24</span>/100</td>
+            <td><span class="badge badge-green">Low Risk</span></td>
+            <td style="color:var(--accent-green)">0 breakdowns</td>
+            <td>PM up to date</td>
+            <td>No anomalies</td>
+            <td>No action required</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== FUEL FORECAST ========== -->
+<div class="page" id="page-intel-fuel-forecast">
+  <div class="page-header">
+    <div><div class="page-title">Fuel Consumption Forecast</div><div class="page-subtitle">AI-generated weekly and monthly fuel procurement forecast per site · XGBoost Regressor v1.4</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:16px">Set Activity Intensity for Upcoming Week</div>
+    <div class="info-box">Project Managers: set the planned activity level for your site. This input is used by the forecasting model to adjust predictions.</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px;font-size:13px">
+        <span style="min-width:200px;color:var(--text-secondary)">PRJ-QAT-2024-001 · Ras Laffan</span>
+        <input type="range" min="1" max="5" value="4" style="flex:1;accent-color:var(--accent)">
+        <span style="color:var(--accent);font-weight:700;min-width:80px">Level 4 — High</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:13px">
+        <span style="min-width:200px;color:var(--text-secondary)">PRJ-SAU-2024-002 · Jubail</span>
+        <input type="range" min="1" max="5" value="3" style="flex:1;accent-color:var(--accent)">
+        <span style="color:var(--accent-yellow);font-weight:700;min-width:80px">Level 3 — Medium</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:13px">
+        <span style="min-width:200px;color:var(--text-secondary)">PRJ-UAE-2024-003 · Abu Dhabi</span>
+        <input type="range" min="1" max="5" value="2" style="flex:1;accent-color:var(--accent)">
+        <span style="color:var(--text-secondary);font-weight:700;min-width:80px">Level 2 — Low</span>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="card-header" style="padding:16px 20px">
+      <div class="card-title">Forecast Results</div>
+      <span style="font-size:12px;color:var(--text-dim)">Model R²: 0.83 · Generated: Today 06:00 GST</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Site</th><th>Active Equipment</th><th>Activity Level</th><th>Weekly Forecast (L)</th><th>95% CI</th><th>Monthly Forecast (L)</th><th>95% CI</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="td-primary">Ras Laffan</div><div class="td-secondary">PRJ-QAT-2024-001</div></td>
+            <td>18 assets</td>
+            <td><span class="badge badge-red">Level 4 — High</span></td>
+            <td style="font-weight:700;color:var(--accent)">12,400 L</td>
+            <td style="color:var(--text-secondary);font-size:12px">11,800 – 13,100</td>
+            <td style="font-weight:700;color:var(--accent)">49,800 L</td>
+            <td style="color:var(--text-secondary);font-size:12px">47,000 – 52,600</td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Jubail</div><div class="td-secondary">PRJ-SAU-2024-002</div></td>
+            <td>14 assets</td>
+            <td><span class="badge badge-yellow">Level 3 — Medium</span></td>
+            <td style="font-weight:700;color:var(--accent)">8,200 L</td>
+            <td style="color:var(--text-secondary);font-size:12px">7,600 – 8,900</td>
+            <td style="font-weight:700;color:var(--accent)">34,100 L</td>
+            <td style="color:var(--text-secondary);font-size:12px">31,000 – 36,800</td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Abu Dhabi</div><div class="td-secondary">PRJ-UAE-2024-003</div></td>
+            <td>10 assets</td>
+            <td><span class="badge badge-gray">Level 2 — Low</span></td>
+            <td style="font-weight:700;color:var(--accent)">4,800 L</td>
+            <td style="color:var(--text-secondary);font-size:12px">4,400 – 5,300</td>
+            <td style="font-weight:700;color:var(--accent)">19,500 L</td>
+            <td style="color:var(--text-secondary);font-size:12px">18,000 – 21,200</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DRIVER RISK ========== -->
+<div class="page" id="page-intel-driver-risk">
+  <div class="page-header">
+    <div><div class="page-title">Driver Risk Scores</div><div class="page-subtitle">AI-computed composite behavior scoring — updated nightly · Weighted: Incidents 40% · Fuel 30% · Breakdown 20% · Compliance 10%</div></div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">High Risk Drivers</div><div class="kpi-value" style="color:var(--accent-red)">2</div></div>
+    <div class="kpi-card"><div class="kpi-label">Medium Risk</div><div class="kpi-value" style="color:var(--accent-yellow)">5</div></div>
+    <div class="kpi-card"><div class="kpi-label">Low Risk</div><div class="kpi-value" style="color:var(--accent-green)">13</div></div>
+    <div class="kpi-card"><div class="kpi-label">Model Accuracy</div><div class="kpi-value">82%</div></div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Driver</th><th>Composite Score</th><th>Risk Level</th><th>Incident Score</th><th>Fuel Score</th><th>Breakdown Score</th><th>Compliance</th><th>Current Asset</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="td-primary">Mohammed Al-Farsi</div><div class="td-secondary">EMP-2024-0055</div></td>
+            <td><span style="font-size:18px;font-weight:800;color:var(--accent-red)">38</span>/100</td>
+            <td><span class="badge badge-red">High Risk</span></td>
+            <td style="color:var(--accent-red)">22/100</td>
+            <td style="color:var(--accent-red)">41/100</td>
+            <td style="color:var(--accent-yellow)">55/100</td>
+            <td style="color:var(--accent-green)">100/100</td>
+            <td>EQ-2024-0007 · Isuzu D-Max</td>
+            <td><button class="btn btn-danger btn-sm">Review</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Pradeep Nair</div><div class="td-secondary">EMP-2024-0067</div></td>
+            <td><span style="font-size:18px;font-weight:800;color:var(--accent-red)">42</span>/100</td>
+            <td><span class="badge badge-red">High Risk</span></td>
+            <td style="color:var(--accent-yellow)">50/100</td>
+            <td style="color:var(--accent-red)">38/100</td>
+            <td style="color:var(--accent-red)">40/100</td>
+            <td style="color:var(--accent-yellow)">65/100</td>
+            <td>EQ-2024-0015 · JCB 3CX</td>
+            <td><button class="btn btn-danger btn-sm">Review</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Ahmed Al-Rashidi</div><div class="td-secondary">EMP-2024-0031</div></td>
+            <td><span style="font-size:18px;font-weight:800;color:var(--accent-yellow)">61</span>/100</td>
+            <td><span class="badge badge-yellow">Medium Risk</span></td>
+            <td style="color:var(--accent-yellow)">58/100</td>
+            <td style="color:var(--accent-green)">72/100</td>
+            <td style="color:var(--accent-yellow)">65/100</td>
+            <td style="color:var(--accent-red)">30/100</td>
+            <td>EQ-2024-0013 · Volvo FMX</td>
+            <td><button class="btn btn-secondary btn-sm">View</button></td>
+          </tr>
+          <tr>
+            <td><div class="td-primary">Rajesh Kumar</div><div class="td-secondary">EMP-2024-0018</div></td>
+            <td><span style="font-size:18px;font-weight:800;color:var(--accent-green)">88</span>/100</td>
+            <td><span class="badge badge-green">Low Risk</span></td>
+            <td style="color:var(--accent-green)">92/100</td>
+            <td style="color:var(--accent-green)">85/100</td>
+            <td style="color:var(--accent-green)">90/100</td>
+            <td style="color:var(--accent-green)">100/100</td>
+            <td>EQ-2024-0031 · Liebherr Crane</td>
+            <td><button class="btn btn-ghost btn-sm">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== REPLACEMENT ALERTS ========== -->
+<div class="page" id="page-intel-replacement">
+  <div class="page-header">
+    <div><div class="page-title">Replacement Alerts</div><div class="page-subtitle">Assets where cumulative repair cost has crossed the configured threshold of book value</div></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="background:var(--accent-red-dim);border:1px solid var(--accent-red);border-radius:var(--radius-lg);padding:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+          <div><div style="font-weight:700;color:var(--text-primary)">EQ-2021-0015 · CAT D8T Bulldozer</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Second Alert — Triggered: 01 Jul 2026</div></div>
+          <span class="badge badge-red">Action Required</span>
+        </div>
+        <div class="detail-grid" style="gap:6px;margin-bottom:12px">
+          <div class="detail-row"><div class="detail-label">Current Book Value</div><div class="detail-value">QAR 280,000</div></div>
+          <div class="detail-row"><div class="detail-label">Cumulative Repair Cost</div><div class="detail-value" style="color:var(--accent-red)">QAR 224,000</div></div>
+          <div class="detail-row"><div class="detail-label">Ratio</div><div class="detail-value" style="color:var(--accent-red);font-weight:800">80% — CRITICAL</div></div>
+          <div class="detail-row"><div class="detail-label">Threshold Triggered</div><div class="detail-value">80% (Second Alert)</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">Recommended: Initiate asset replacement evaluation. Continued repair investment is economically unviable.</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-danger">Initiate Write-Off Process</button>
+          <button class="btn btn-secondary">Acknowledge</button>
+        </div>
+      </div>
+      <div style="background:var(--accent-yellow-dim);border:1px solid var(--accent-yellow);border-radius:var(--radius-lg);padding:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+          <div><div style="font-weight:700;color:var(--text-primary)">EQ-2020-0022 · Komatsu WA380 Wheel Loader</div><div style="font-size:12px;color:var(--text-secondary);margin-top:2px">First Alert — Triggered: 28 Jun 2026</div></div>
+          <span class="badge badge-yellow">Under Review</span>
+        </div>
+        <div class="detail-grid" style="gap:6px;margin-bottom:12px">
+          <div class="detail-row"><div class="detail-label">Current Book Value</div><div class="detail-value">QAR 420,000</div></div>
+          <div class="detail-row"><div class="detail-label">Cumulative Repair Cost</div><div class="detail-value" style="color:var(--accent-yellow)">QAR 264,600</div></div>
+          <div class="detail-row"><div class="detail-label">Ratio</div><div class="detail-value" style="color:var(--accent-yellow);font-weight:800">63% — WARNING</div></div>
+          <div class="detail-row"><div class="detail-label">Threshold Triggered</div><div class="detail-value">60% (First Alert)</div></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary">Acknowledge</button>
+          <button class="btn btn-ghost">View Full History</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== USER MANAGEMENT ========== -->
+<div class="page" id="page-admin-users">
+  <div class="page-header">
+    <div><div class="page-title">User Management</div><div class="page-subtitle">System Admin only</div></div>
+    <div class="page-actions">
+      <button class="btn btn-primary">+ Create User Account</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Employee ID</th><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="td-mono">EMP-2024-0001</td>
+            <td>Hassan Al-Thani</td>
+            <td>hassan@company.com</td>
+            <td><span class="badge badge-orange">Fleet Manager</span></td>
+            <td>Today 08:14 GST</td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EMP-2024-0010</td>
+            <td>Ali Hassan</td>
+            <td>ali.hassan@company.com</td>
+            <td><span class="badge badge-blue">Site Engineer</span></td>
+            <td>Today 07:22 GST</td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EMP-2024-0020</td>
+            <td>Suresh Babu</td>
+            <td>suresh.babu@company.com</td>
+            <td><span class="badge badge-purple">Workshop Mechanic</span></td>
+            <td>Yesterday 16:40 GST</td>
+            <td><span class="badge badge-green">Active</span></td>
+            <td><button class="btn btn-ghost btn-sm">Edit</button></td>
+          </tr>
+          <tr>
+            <td class="td-mono">EMP-2023-0055</td>
+            <td>Omar Farouq</td>
+            <td>omar.farouq@company.com</td>
+            <td><span class="badge badge-red">HSE Officer</span></td>
+            <td>3 days ago</td>
+            <td><span class="badge badge-gray">Inactive</span></td>
+            <td><button class="btn btn-ghost btn-sm">Reactivate</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SYSTEM CONFIG ========== -->
+<div class="page" id="page-admin-config">
+  <div class="page-header">
+    <div><div class="page-title">System Configuration</div><div class="page-subtitle">Thresholds and parameters controlling system behavior · System Admin only</div></div>
+    <div class="page-actions">
+      <button class="btn btn-primary">Save All Changes</button>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="form-section-title" style="margin-bottom:16px">⛽ Fuel Management</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Fuel Anomaly Deviation Threshold (%)</label>
+          <input class="form-input" type="number" value="20">
+          <span class="form-hint">Flag anomaly if consumption deviates more than this % from rolling average</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rolling Average Window (Days)</label>
+          <input class="form-input" type="number" value="30">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-section-title" style="margin-bottom:16px">🔧 Maintenance Thresholds</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">PM Overdue Warning Threshold (%)</label>
+          <input class="form-input" type="number" value="5">
+          <span class="form-hint">Show yellow warning when this % past the OEM interval</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">PM Overdue Critical Threshold (%)</label>
+          <input class="form-input" type="number" value="10">
+          <span class="form-hint">Show red critical when this % past the OEM interval</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-section-title" style="margin-bottom:16px">💰 Replacement Alert</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">First Alert Threshold (% of Book Value)</label>
+          <input class="form-input" type="number" value="60">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Second Alert Threshold (% of Book Value)</label>
+          <input class="form-input" type="number" value="80">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-section-title" style="margin-bottom:16px">🎯 Driver Behavior Weights</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Incident Score Weight (%)</label>
+          <input class="form-input" type="number" value="40">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fuel Overconsumption Weight (%)</label>
+          <input class="form-input" type="number" value="30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Breakdown Attribution Weight (%)</label>
+          <input class="form-input" type="number" value="20">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Compliance Score Weight (%)</label>
+          <input class="form-input" type="number" value="10">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-section-title" style="margin-bottom:16px">🔔 Alert Lead Times (Days)</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Gulf Registration Expiry Alerts (days before)</label>
+          <input class="form-input" value="90, 60, 30" placeholder="Comma-separated values">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Insurance Expiry Alerts</label>
+          <input class="form-input" value="90, 60, 30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Driver License Expiry Alerts</label>
+          <input class="form-input" value="60, 30, 7">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Equipment Certification Expiry Alerts</label>
+          <input class="form-input" value="60, 30, 7">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-section-title" style="margin-bottom:16px">🚫 Business Rule Enforcement</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">High-Risk Driver Assignment to Executive Vehicles</label>
+          <select class="form-select"><option>Block — Hard stop, Fleet Manager must override</option><option>Warn — Show warning, allow with acknowledgment</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expired License Driver Assignment</label>
+          <select class="form-select"><option>Block — Hard stop, no override</option><option>Warn — Show warning</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== AUDIT LOG ========== -->
+<div class="page" id="page-admin-audit">
+  <div class="page-header">
+    <div><div class="page-title">Audit Log</div><div class="page-subtitle">Immutable record of all system changes · Read-only · System Admin and Fleet Manager</div></div>
+  </div>
+  <div class="filter-bar">
+    <select class="filter-select"><option>All Tables</option><option>Asset</option><option>TransferRequest</option><option>MaintenanceJobCard</option><option>IncidentReport</option><option>FuelLog</option><option>Driver</option></select>
+    <select class="filter-select"><option>All Operations</option><option>INSERT</option><option>UPDATE</option><option>SOFT-DELETE</option></select>
+    <input class="filter-input" placeholder="Search by user or record ID..." style="flex:1">
+    <input class="filter-input" type="date">
+    <input class="filter-input" type="date">
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Timestamp</th><th>Table</th><th>Record ID</th><th>Operation</th><th>Changed By</th><th>Changes Summary</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-size:12px;color:var(--text-secondary)">2026-07-04 09:14:22</td>
+            <td class="td-mono">TransferRequest</td>
+            <td class="td-mono" style="font-size:11px">TR-2024-000041</td>
+            <td><span class="badge badge-blue">UPDATE</span></td>
+            <td>Hassan Al-Thani<br><span class="td-secondary">Fleet Manager</span></td>
+            <td style="font-size:12px">status: Pending → Approved<br>approved_by: added<br>approved_at: added</td>
+            <td><button class="btn btn-ghost btn-sm">Details</button></td>
+          </tr>
+          <tr>
+            <td style="font-size:12px;color:var(--text-secondary)">2026-07-04 08:42:10</td>
+            <td class="td-mono">FuelLog</td>
+            <td class="td-mono" style="font-size:11px">FL-2024-008821</td>
+            <td><span class="badge badge-green">INSERT</span></td>
+            <td>Ali Hassan<br><span class="td-secondary">Site Engineer</span></td>
+            <td style="font-size:12px">asset: EQ-2024-0007 · quantity: 81L<br>anomaly detected: true</td>
+            <td><button class="btn btn-ghost btn-sm">Details</button></td>
+          </tr>
+          <tr>
+            <td style="font-size:12px;color:var(--text-secondary)">2026-07-04 07:30:05</td>
+            <td class="td-mono">MaintenanceJobCard</td>
+            <td class="td-mono" style="font-size:11px">JC-2024-000341</td>
+            <td><span class="badge badge-yellow">UPDATE</span></td>
+            <td>Suresh Babu<br><span class="td-secondary">Mechanic</span></td>
+            <td style="font-size:12px">status: In-Progress → Parts-Pending<br>parts_expected_by: 08 Jul 2026</td>
+            <td><button class="btn btn-ghost btn-sm">Details</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== FUEL HISTORY ========== -->
+<div class="page" id="page-fuel-history">
+  <div class="page-header">
+    <div><div class="page-title">Fuel Log History</div></div>
+    <div class="page-actions">
+      <button class="btn btn-secondary">Export CSV</button>
+      <button class="btn btn-primary" onclick="navigate('fuel-log')">+ Log Fuel</button>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <input class="filter-input" placeholder="Search asset or voucher ref..." style="flex:1">
+    <select class="filter-select"><option>All Sites</option></select>
+    <select class="filter-select"><option>All Anomalies</option><option>Anomalies Only</option><option>Normal Only</option></select>
+    <input class="filter-input" type="date">
+    <input class="filter-input" type="date">
+  </div>
+  <div class="card" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Date & Time</th><th>Asset</th><th>Driver</th><th>Site</th><th>Qty (L)</th><th>Meter</th><th>Efficiency</th><th>Cost (QAR)</th><th>Anomaly</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-size:12px">04 Jul 2026<br>08:42</td>
+            <td><div class="td-primary">Isuzu D-Max</div><div class="td-mono">EQ-2024-0007</div></td>
+            <td>Mohammed Al-Farsi</td>
+            <td>Jubail</td>
+            <td style="color:var(--accent-red);font-weight:700">81 L</td>
+            <td>44,210 km</td>
+            <td style="color:var(--accent-red)">9.1 km/L ↓</td>
+            <td>190.35</td>
+            <td><span class="badge badge-red">⚠ Flagged</span></td>
+          </tr>
+          <tr>
+            <td style="font-size:12px">02 Jul 2026<br>14:20</td>
+            <td><div class="td-primary">Toyota Land Cruiser</div><div class="td-mono">EQ-2024-0001</div></td>
+            <td>Khalid Al-Mansouri</td>
+            <td>Ras Laffan</td>
+            <td>58 L</td>
+            <td>28,440 km</td>
+            <td style="color:var(--accent-green)">12.8 km/L</td>
+            <td>136.30</td>
+            <td><span class="badge badge-green">Normal</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== FUEL TANK ========== -->
+<div class="page" id="page-fuel-tank">
+  <div class="page-header">
+    <div><div class="page-title">Site Fuel Tank Management</div></div>
+    <div class="page-actions">
+      <button class="btn btn-primary">+ Record Delivery</button>
+    </div>
+  </div>
+  <div class="grid-3">
+    <div class="kpi-card">
+      <div class="kpi-label">TANK-PRJ001-D1 · Ras Laffan</div>
+      <div class="kpi-value">2,840 L</div>
+      <div class="kpi-sub">Capacity: 5,000 L · 56.8% full</div>
+      <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:56.8%;background:var(--accent-yellow)"></div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">TANK-PRJ002-D1 · Jubail</div>
+      <div class="kpi-value">4,120 L</div>
+      <div class="kpi-sub">Capacity: 5,000 L · 82.4% full</div>
+      <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:82.4%;background:var(--accent-green)"></div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">TANK-PRJ003-D1 · Abu Dhabi</div>
+      <div class="kpi-value">880 L</div>
+      <div class="kpi-sub">Capacity: 3,000 L · 29.3% — Low!</div>
+      <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:29.3%;background:var(--accent-red)"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== UTILIZATION LOG ========== -->
+<div class="page" id="page-utilization">
+  <div class="page-header">
+    <div><div class="page-title">Daily Utilization Log</div></div>
+    <div class="page-actions">
+      <button class="btn btn-primary">+ Log Shift Utilization</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="form-section">
+      <div class="form-section-title">📅 Log Shift Utilization</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Asset <span class="required">*</span></label><select class="form-select"><option>Select asset...</option></select></div>
+        <div class="form-group"><label class="form-label">Operator <span class="required">*</span></label><select class="form-select"><option>Select operator...</option></select></div>
+        <div class="form-group"><label class="form-label">Date <span class="required">*</span></label><input class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Shift <span class="required">*</span></label><select class="form-select"><option>AM</option><option>PM</option><option>Night</option><option>Full-Day</option></select></div>
+        <div class="form-group"><label class="form-label">Available Hours <span class="required">*</span></label><input class="form-input" type="number" step="0.5" placeholder="e.g. 10"></div>
+        <div class="form-group"><label class="form-label">Productive Hours <span class="required">*</span></label><input class="form-input" type="number" step="0.5" placeholder="e.g. 8.5"></div>
+        <div class="form-group"><label class="form-label">Opening Hour Meter</label><input class="form-input" type="number" placeholder="e.g. 4,240"></div>
+        <div class="form-group"><label class="form-label">Closing Hour Meter</label><input class="form-input" type="number" placeholder="e.g. 4,250"></div>
+        <div class="form-group form-full"><label class="form-label">Operator Remarks</label><textarea class="form-textarea" placeholder="Any observations for this shift..."></textarea></div>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary">Save Utilization Log</button></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .main -->
+</div><!-- end .layout -->
+
+<script>
+  function navigate(pageId) {
+    // Remove active from all nav items
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    // Show target page
+    const page = document.getElementById('page-' + pageId);
+    if (page) page.classList.add('active');
+    // Activate nav item
+    const navItem = document.getElementById('nav-' + pageId);
+    if (navItem) navItem.classList.add('active');
+    // Scroll to top
+    document.querySelector('.main').scrollTop = 0;
+  }
+
+  function switchRole(role) {
+    const roleLabels = {
+      fleet_manager: 'FM',
+      site_engineer: 'SE',
+      mechanic: 'WM',
+      hse: 'HS',
+      executive: 'EX',
+      finance: 'FN',
+      sysadmin: 'SA'
+    };
+    document.querySelector('.topbar-avatar').textContent = roleLabels[role] || 'FM';
+    // Role-based nav visibility
+    const adminItems = document.querySelectorAll('#nav-admin-users, #nav-admin-config, #nav-admin-audit');
+    const financeItems = document.querySelectorAll('#nav-analytics-cost');
+    const executiveOnlyItems = document.querySelectorAll('#nav-intel-predictive, #nav-intel-fuel-forecast, #nav-intel-driver-risk, #nav-intel-replacement');
+    if (role === 'mechanic') {
+      adminItems.forEach(el => el.style.display = 'none');
+      executiveOnlyItems.forEach(el => el.style.display = 'none');
+    } else if (role === 'site_engineer') {
+      adminItems.forEach(el => el.style.display = 'none');
+    } else {
+      adminItems.forEach(el => el.style.display = '');
+      executiveOnlyItems.forEach(el => el.style.display = '');
+    }
+    if (role === 'sysadmin') {
+      adminItems.forEach(el => el.style.display = '');
+    }
+  }
+
+  // Tab switching (simple version)
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      const tabs = this.parentElement.querySelectorAll('.tab');
+      tabs.forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

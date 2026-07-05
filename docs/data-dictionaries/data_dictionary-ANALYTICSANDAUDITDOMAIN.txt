@@ -1,0 +1,439 @@
+================================================================================
+EMS — DATA DICTIONARY
+DOMAIN GROUP 5: ANALYTICS, INTELLIGENCE & AUDIT DOMAIN
+Version 1.0 | Phase 1 Deliverable | IEEE 830 Compliant
+================================================================================
+
+TABLES IN THIS DOMAIN:
+  1. IncidentReport
+  2. IncidentMedia
+  3. AssetKPISnapshot
+  4. PredictiveMaintenanceScore
+  5. FuelForecast
+  6. ReplacementAlert
+  7. SystemAlert
+  8. AuditLog
+
+================================================================================
+TABLE 1: IncidentReport
+PURPOSE: Records every accident, near miss, fire, tip-over, or HSE event
+         involving a company asset and its operator.
+         Drives driver behavior scoring, insurance claims, police report
+         compliance, and HSE investigation workflows.
+         Links to IncidentMedia for photographic and documentary evidence.
+================================================================================
+
+  COLUMN                        | DATA TYPE      | CONSTRAINTS                          | DESCRIPTION                                                  | EXAMPLE
+  ------------------------------|----------------|--------------------------------------|--------------------------------------------------------------|-------------------
+  id                            | uuid           | PK, NOT NULL                         | Unique record identifier                                     | o1p2q3r4-...
+  incident_number               | varchar(30)    | UNIQUE, NOT NULL                     | Auto-generated. Format: INC-YYYY-NNNNNN                      | INC-2024-000031
+  asset_id                      | uuid           | FK -> Asset.id, NOT NULL             | Asset involved in the incident                               | c3d4e5f6-...
+  driver_id                     | uuid           | FK -> Driver.id, NOT NULL            | Driver or operator at time of incident                       | p6q7r8s9-...
+  project_id                    | uuid           | FK -> Project.id, NULL               | Project site where incident occurred                         | u1v2w3x4-...
+  yard_location_id              | uuid           | FK -> WarehouseYardLocation.id, NULL | Yard location if incident in yard                            | null
+  transfer_request_id           | uuid           | NULL                                 | FK to TransferRequest if incident occurred in transit        | null
+  incident_type                 | varchar(50)    | NOT NULL                             | See valid incident types below                               | Minor-Accident
+  occurred_at                   | timestamptz    | NOT NULL                             | Actual date and time the incident happened                   | 2024-06-28 14:30:00+03
+  reported_at                   | timestamptz    | NOT NULL, DEFAULT now()              | Date and time incident was reported in system                | 2024-06-28 15:00:00+03
+  reported_by                   | uuid           | FK -> Employee.id, NOT NULL          | Employee who filed this incident report                      | o5p6q7r8-...
+  third_party_involved          | boolean        | NOT NULL, DEFAULT false              | Whether a third party vehicle or person was involved         | false
+  third_party_vehicle_plate     | varchar(30)    | NULL                                 | Third-party vehicle plate — mandatory if involved            | null
+  third_party_company           | varchar(200)   | NULL                                 | Third-party company or owner name                            | null
+  third_party_driver_name       | varchar(200)   | NULL                                 | Third-party driver full name                                 | null
+  third_party_insurance_details | text           | NULL                                 | Third-party insurance policy number and provider             | null
+  personal_injury_occurred      | boolean        | NOT NULL, DEFAULT false              | Whether any person sustained an injury                       | false
+  injured_persons_details       | text           | NULL                                 | Names, roles, and injury descriptions of injured persons     | null
+  medical_attention_required    | boolean        | NOT NULL, DEFAULT false              | Whether medical treatment was sought                         | false
+  hospitalization_occurred      | boolean        | NOT NULL, DEFAULT false              | Whether any injured person was hospitalized                  | false
+  medical_facility              | varchar(300)   | NULL                                 | Name and location of medical facility attended               | null
+  police_report_number          | varchar(100)   | NULL                                 | Official police or traffic authority report reference        | MR-JUB-2024-441
+  insurance_claim_number        | varchar(100)   | NULL                                 | Insurance claim reference raised after the incident          | null
+  estimated_damage_cost         | decimal(12,2)  | NULL                                 | Estimated repair cost for company asset damage               | 8500.00
+  estimated_third_party_claim   | decimal(12,2)  | NULL                                 | Estimated third-party claim liability amount                 | null
+  root_cause_category           | varchar(50)    | NULL                                 | Human-Error / Mechanical-Failure / Environmental /           | Human-Error
+                                |                |                                      | Procedural-Violation / Unknown                               |
+  root_cause_description        | text           | NULL                                 | Detailed written root cause analysis                         | Driver failed to check blind spot when reversing
+  corrective_action             | text           | NULL                                 | Required before incident can be closed — mandatory at closure| Driver retraining on reversing procedures mandated
+  investigated_by               | uuid           | FK -> Employee.id, NULL              | HSE Officer assigned to investigate — null until assigned    | null
+  investigation_start_date      | date           | NULL                                 | Date HSE investigation was formally started                  | null
+  closure_date                  | date           | NULL                                 | Date incident was officially closed                          | null
+  incident_status               | varchar(20)    | NOT NULL, DEFAULT Open               | Open / Under-Investigation / Closed                          | Under-Investigation
+  is_archived                   | boolean        | NOT NULL, DEFAULT false              | Soft delete flag                                             | false
+  created_at                    | timestamptz    | NOT NULL, DEFAULT now()              | Record creation timestamp                                    | 2024-06-28 15:00:00+03
+  updated_at                    | timestamptz    | NOT NULL, DEFAULT now()              | Last modification timestamp                                  | 2024-06-28 15:00:00+03
+
+VALID INCIDENT TYPES AND DRIVER SCORE DEDUCTIONS:
+  Near-Miss                   = No deduction — warning recorded
+  Minor-Accident              = -5 points from driver incident score
+  Major-Accident              = -15 points from driver incident score
+  Fire                        = -25 points from driver incident score
+  Equipment-Tip-Over          = -25 points from driver incident score
+  Falling-Object              = -10 points from driver incident score
+  Third-Party-Property-Damage = -10 points from driver incident score
+  Personal-Injury             = -20 points from driver incident score (additional on top of accident deduction)
+
+BUSINESS RULES:
+  - incident_number auto-generated: INC-[YYYY]-[000001 to 999999]
+  - Incident type Major-Accident cannot be Closed without police_report_number entered
+    This is a HARD BLOCK — no override permitted by any role
+  - Personal-Injury incidents generate a Critical SystemAlert immediately on creation
+  - corrective_action is mandatory before status can be set to Closed
+  - Driver score impact is applied automatically when incident is Closed
+  - Either project_id, yard_location_id, or transfer_request_id must be populated
+
+INDEX: (asset_id, occurred_at DESC)
+INDEX: (driver_id, occurred_at DESC)
+INDEX: (project_id, occurred_at DESC)
+INDEX: (incident_type) — supports incident analytics breakdown
+INDEX: (incident_status) — supports open investigation filter
+
+================================================================================
+TABLE 2: IncidentMedia
+PURPOSE: Stores references to photographic or documentary evidence attached to
+         incident reports. Files are stored in cloud object storage (S3).
+         Only metadata is stored in this table — not the files themselves.
+         One incident can have many media files.
+================================================================================
+
+  COLUMN          | DATA TYPE     | CONSTRAINTS                    | DESCRIPTION                                         | EXAMPLE
+  ----------------|---------------|--------------------------------|-----------------------------------------------------|-------------------
+  id              | uuid          | PK, NOT NULL                   | Unique record identifier                            | p2q3r4s5-...
+  incident_id     | uuid          | FK -> IncidentReport.id        | Parent incident report                              | o1p2q3r4-...
+                  |               | NOT NULL                       |                                                     |
+  media_type      | varchar(20)   | NOT NULL                       | Photo / Document / Video                            | Photo
+  file_name       | varchar(255)  | NOT NULL                       | Original file name as uploaded                      | incident_INC-2024-000031_01.jpg
+  file_path_url   | text          | NOT NULL                       | S3 URL or server storage path                       | https://s3.aws.../incidents/INC-2024-000031_01.jpg
+  file_size_bytes | integer       | NULL                           | File size in bytes                                  | 1048576
+  mime_type       | varchar(100)  | NULL                           | MIME type for correct client rendering              | image/jpeg
+  caption         | varchar(300)  | NULL                           | Description of what this file shows                 | Front-right bumper damage from impact
+  uploaded_by     | uuid          | FK -> Employee.id, NOT NULL    | User who performed the upload                       | o5p6q7r8-...
+  uploaded_at     | timestamptz   | NOT NULL, DEFAULT now()        | Upload timestamp                                    | 2024-06-28 15:30:00+03
+
+SUPPORTED FILE TYPES: JPG / PNG / PDF / MP4
+MAXIMUM FILE SIZE: 10 MB per file
+INDEX: (incident_id) — fast retrieval of all media for a given incident
+
+================================================================================
+TABLE 3: AssetKPISnapshot
+PURPOSE: Pre-computed KPI record per asset generated nightly by the batch job.
+         Serves the executive dashboard and fleet manager dashboard without
+         requiring expensive real-time aggregation from raw log tables.
+         This is an intentional OLAP-layer denormalization — justified and
+         documented as a performance optimization, not a schema flaw.
+================================================================================
+
+  COLUMN                       | DATA TYPE      | CONSTRAINTS               | DESCRIPTION                                                   | EXAMPLE
+  -----------------------------|----------------|---------------------------|---------------------------------------------------------------|-------------------
+  id                           | uuid           | PK, NOT NULL              | Unique record identifier                                      | q3r4s5t6-...
+  asset_id                     | uuid           | FK -> Asset.id, NOT NULL  | Asset this KPI snapshot covers                                | c3d4e5f6-...
+  snapshot_date                | date           | NOT NULL                  | Calendar date this snapshot was generated                     | 2024-07-04
+  period_start                 | date           | NOT NULL                  | Start of the period this snapshot covers                      | 2024-07-01
+  period_end                   | date           | NOT NULL                  | End of the period this snapshot covers                        | 2024-07-04
+  utilization_rate_percent     | decimal(5,2)   | NULL                      | (productive_hours / available_hours) * 100 for the period     | 82.00
+  total_available_hours        | decimal(8,2)   | NULL                      | Total hours asset was available in the period                 | 50.00
+  total_productive_hours       | decimal(8,2)   | NULL                      | Total hours asset was actively working in the period          | 41.00
+  total_downtime_hours         | decimal(8,2)   | NULL                      | Total hours under maintenance or breakdown in the period      | 9.00
+  mtbf_hours                   | decimal(8,2)   | NULL                      | Mean Time Between Failures — all-time to snapshot date        | 412.00
+  mttr_hours                   | decimal(6,2)   | NULL                      | Mean Time To Repair — average repair duration all-time        | 9.40
+  breakdown_count              | smallint       | NULL                      | Total number of breakdowns for this asset all-time            | 3
+  total_fuel_liters            | decimal(10,2)  | NULL                      | Total fuel consumed in the period in liters                   | 116.00
+  total_fuel_cost              | decimal(12,2)  | NULL                      | Total fuel cost in the period in local currency               | 272.60
+  total_maintenance_cost       | decimal(12,2)  | NULL                      | Total maintenance cost (parts + labor) in the period          | 0.00
+  total_preventive_cost        | decimal(12,2)  | NULL                      | Cost of preventive maintenance only in the period             | 0.00
+  total_corrective_cost        | decimal(12,2)  | NULL                      | Cost of corrective (breakdown) maintenance in the period      | 0.00
+  total_cost_of_ownership      | decimal(15,2)  | NULL                      | Amortized purchase + fuel + maintenance + insurance (period)  | 53720.00
+  cumulative_repair_cost       | decimal(15,2)  | NULL                      | All-time total corrective maintenance cost to snapshot date   | 4200.00
+  repair_to_book_value_ratio   | decimal(5,4)   | NULL                      | cumulative_repair_cost / current_book_value at snapshot date  | 0.0164
+  computed_at                  | timestamptz    | NOT NULL, DEFAULT now()   | Exact timestamp batch job generated this snapshot             | 2024-07-04 06:00:00+03
+
+UNIQUE CONSTRAINT: (asset_id, snapshot_date) — one snapshot per asset per day
+MTBF FORMULA: Total operating hours / Number of breakdown events
+MTTR FORMULA: Sum of all repair durations (job card close minus breakdown reported) / Number of breakdowns
+TCO FORMULA: (purchase_price - residual_value) / useful_life_years * period_fraction
+           + total_fuel_cost + total_maintenance_cost + insurance_premium * period_fraction
+
+NOTE: This table is read-only to all application users — written exclusively by the nightly batch job
+INDEX: (asset_id, snapshot_date DESC) [UNIQUE]
+INDEX: (snapshot_date DESC) — supports fleet-wide dashboard by date
+
+================================================================================
+TABLE 4: PredictiveMaintenanceScore
+PURPOSE: AI-computed breakdown probability score per active asset.
+         Generated nightly by the Random Forest classifier in the Python ML service.
+         One current score per asset (is_current = true) plus history of all
+         prior scores for trend analysis and model evaluation.
+================================================================================
+
+  COLUMN                        | DATA TYPE      | CONSTRAINTS               | DESCRIPTION                                                   | EXAMPLE
+  ------------------------------|----------------|---------------------------|---------------------------------------------------------------|-------------------
+  id                            | uuid           | PK, NOT NULL              | Unique record identifier                                      | r4s5t6u7-...
+  asset_id                      | uuid           | FK -> Asset.id, NOT NULL  | Asset being scored                                            | c3d4e5f6-...
+  score                         | decimal(5,2)   | NOT NULL                  | Breakdown probability. 0 = lowest risk, 100 = highest risk    | 24.00
+  risk_category                 | varchar(10)    | NOT NULL                  | Low (0-39) / Medium (40-69) / High (70-100)                   | Low
+  top_feature_1                 | varchar(100)   | NULL                      | Most influential input feature for this prediction            | Hours since last service
+  top_feature_2                 | varchar(100)   | NULL                      | Second most influential input feature                         | Breakdowns last 90 days
+  top_feature_3                 | varchar(100)   | NULL                      | Third most influential input feature                          | Asset age years
+  recommended_action            | text           | NULL                      | Human-readable recommended action for fleet manager           | No action required — continue regular PM schedule
+  hours_since_last_service      | decimal(8,2)   | NULL                      | Feature value used as input to this prediction                | 3.50
+  breakdowns_last_90_days       | smallint       | NULL                      | Feature value used as input to this prediction                | 0
+  fuel_anomalies_last_30_days   | smallint       | NULL                      | Feature value used as input to this prediction                | 0
+  overdue_maintenance_flag      | boolean        | NULL                      | Feature value — whether any PM was overdue at scoring time    | false
+  asset_age_years               | decimal(4,1)   | NULL                      | Feature value — asset age in years at scoring time            | 2.5
+  is_current                    | boolean        | NOT NULL, DEFAULT true    | True for the latest score — false for all historical records  | true
+  model_version                 | varchar(20)    | NOT NULL                  | ML model version that produced this score                     | v2.1
+  computed_at                   | timestamptz    | NOT NULL                  | Exact timestamp this score was computed by the batch job      | 2024-07-04 06:00:00+03
+  created_at                    | timestamptz    | NOT NULL, DEFAULT now()   | Record creation timestamp                                     | 2024-07-04 06:00:00+03
+
+RISK CATEGORY THRESHOLDS:
+  Low Risk    = score 0 to 39    — No action required
+  Medium Risk = score 40 to 69   — Schedule preventive inspection within 14 days
+  High Risk   = score 70 to 100  — Immediate inspection — SystemAlert raised to Fleet Manager
+
+ML MODEL DETAILS:
+  Algorithm       : Random Forest Classifier
+  Framework       : scikit-learn (Python)
+  Serialization   : joblib
+  Retraining      : Monthly or when F1-Score drops below 0.75 threshold
+  Minimum F1-Score: 0.75 (acceptance criteria)
+
+INPUT FEATURES (all extracted from operational log tables):
+  - asset_age_years
+  - cumulative_operating_hours
+  - hours_since_last_service
+  - breakdowns_last_90_days
+  - breakdowns_last_365_days
+  - fuel_anomalies_last_30_days
+  - overdue_maintenance_flag (boolean)
+  - operating_environment (on-road / off-road / stationary)
+  - asset_category_code
+
+NOTE: is_current flag toggled on nightly batch — previous record set false, new record inserted
+INDEX: (asset_id, is_current) — fast lookup of current score per asset
+INDEX: (asset_id, computed_at DESC) — historical score trend per asset
+INDEX: (risk_category) — fleet-wide risk distribution queries
+INDEX: (score DESC) — ranked risk list for dashboard
+
+================================================================================
+TABLE 5: FuelForecast
+PURPOSE: AI-generated fuel volume predictions per project site.
+         Generated nightly by the XGBoost Regressor in the Python ML service.
+         Produces both weekly and monthly forecasts per site.
+         Actual volumes are filled in after the period ends for ongoing
+         model accuracy evaluation and retraining data collection.
+================================================================================
+
+  COLUMN                   | DATA TYPE      | CONSTRAINTS                | DESCRIPTION                                                  | EXAMPLE
+  -------------------------|----------------|----------------------------|--------------------------------------------------------------|-------------------
+  id                       | uuid           | PK, NOT NULL               | Unique record identifier                                     | s5t6u7v8-...
+  project_id               | uuid           | FK -> Project.id, NOT NULL | Project site this forecast is for                            | u1v2w3x4-...
+  forecast_type            | varchar(10)    | NOT NULL                   | Weekly / Monthly                                             | Weekly
+  forecast_period_start    | date           | NOT NULL                   | First day of the forecast period                             | 2024-07-07
+  forecast_period_end      | date           | NOT NULL                   | Last day of the forecast period                              | 2024-07-13
+  predicted_volume_liters  | decimal(10,2)  | NOT NULL                   | Predicted total fuel volume required in the period           | 12400.00
+  confidence_lower         | decimal(10,2)  | NOT NULL                   | Lower bound of 95% prediction confidence interval            | 11800.00
+  confidence_upper         | decimal(10,2)  | NOT NULL                   | Upper bound of 95% prediction confidence interval            | 13100.00
+  active_equipment_count   | smallint       | NULL                       | Input feature — equipment count at site at forecast time     | 18
+  activity_intensity       | smallint       | NULL                       | Input feature — 1 to 5 intensity scale set by Project Manager| 4
+  actual_volume_liters     | decimal(10,2)  | NULL                       | Actual volume consumed — filled after period ends            | null
+  forecast_error           | decimal(10,2)  | NULL                       | actual_volume_liters minus predicted_volume_liters           | null
+  model_version            | varchar(20)    | NOT NULL                   | ML model version that produced this forecast                 | v1.4
+  generated_at             | timestamptz    | NOT NULL                   | Exact timestamp forecast was generated by batch job          | 2024-07-04 06:00:00+03
+  created_at               | timestamptz    | NOT NULL, DEFAULT now()    | Record creation timestamp                                    | 2024-07-04 06:00:00+03
+
+ML MODEL DETAILS:
+  Algorithm       : XGBoost Regressor
+  Framework       : XGBoost + scikit-learn pipeline (Python)
+  Serialization   : joblib
+  Minimum R²      : 0.80 (acceptance criteria)
+  Evaluation      : MAE, RMSE, R² on held-out test set
+
+INPUT FEATURES:
+  - active_equipment_count by sub-type at site
+  - historical daily fuel consumption per equipment sub-type at site
+  - day_of_week patterns from historical logs
+  - activity_intensity (1-5 scale set by Project Manager for upcoming period)
+  - site-specific historical consumption baseline
+
+BUSINESS RULE: Project Managers set activity_intensity in the system before the nightly batch runs
+BUSINESS RULE: actual_volume_liters is populated by a separate post-period reconciliation job
+INDEX: (project_id, forecast_period_start DESC) — latest forecast per site
+INDEX: (forecast_type, forecast_period_start) — all weekly or monthly forecasts
+
+================================================================================
+TABLE 6: ReplacementAlert
+PURPOSE: System-generated alerts when an asset's cumulative corrective
+         maintenance cost crosses a configured percentage of its current
+         book value, signaling that continued repair is economically unviable
+         and replacement should be considered.
+         Two alert levels: First Alert at 60% threshold, Second at 80%.
+         Both thresholds are configurable by System Admin.
+================================================================================
+
+  COLUMN                       | DATA TYPE      | CONSTRAINTS                | DESCRIPTION                                                  | EXAMPLE
+  -----------------------------|----------------|----------------------------|--------------------------------------------------------------|-------------------
+  id                           | uuid           | PK, NOT NULL               | Unique record identifier                                     | t6u7v8w9-...
+  asset_id                     | uuid           | FK -> Asset.id, NOT NULL   | Asset triggering this replacement alert                      | c3d4e5f6-...
+  trigger_date                 | date           | NOT NULL                   | Date the threshold was crossed and alert was generated       | 2024-07-01
+  cumulative_repair_cost       | decimal(15,2)  | NOT NULL                   | All-time total corrective maintenance cost at trigger date   | 224000.00
+  current_book_value           | decimal(15,2)  | NOT NULL                   | Asset book value at trigger date from PurchaseRecord         | 280000.00
+  repair_to_book_value_ratio   | decimal(5,4)   | NOT NULL                   | cumulative_repair_cost / current_book_value at trigger       | 0.8000
+  alert_threshold_triggered    | decimal(5,4)   | NOT NULL                   | The configured threshold that was crossed (0.60 or 0.80)     | 0.8000
+  alert_level                  | varchar(10)    | NOT NULL                   | First / Second                                               | Second
+  recommended_action           | text           | NOT NULL                   | Recommended action generated by the replacement engine       | Initiate asset replacement evaluation immediately
+  alert_status                 | varchar(20)    | NOT NULL, DEFAULT Open     | Open / Acknowledged / Actioned / Dismissed                   | Open
+  acknowledged_by              | uuid           | FK -> Employee.id, NULL    | Fleet Manager who acknowledged — null until acknowledged     | null
+  acknowledged_at              | timestamptz    | NULL                       | Timestamp of acknowledgment                                  | null
+  action_taken                 | text           | NULL                       | Description of action taken by Fleet Manager                 | null
+  created_at                   | timestamptz    | NOT NULL, DEFAULT now()    | Record creation timestamp                                    | 2024-07-01 06:00:00+03
+  updated_at                   | timestamptz    | NOT NULL, DEFAULT now()    | Last modification timestamp                                  | 2024-07-01 06:00:00+03
+
+REPLACEMENT ENGINE LOGIC:
+  1. Nightly batch retrieves latest AssetKPISnapshot.repair_to_book_value_ratio per asset
+  2. If ratio >= 0.80 and no Second alert exists for this asset -> generate Second alert
+  3. Else if ratio >= 0.60 and no First alert exists for this asset -> generate First alert
+  4. Both threshold values are configurable in SystemConfig by System Admin
+  5. A Second alert generates a Critical SystemAlert — a First alert generates Warning
+
+BUSINESS RULE: Only one First and one Second alert record per asset at any time
+BUSINESS RULE: Fleet Manager must acknowledge and record action_taken before alert is closed
+INDEX: (asset_id, trigger_date DESC)
+INDEX: (alert_status) — supports open alert dashboard panel
+
+================================================================================
+TABLE 7: SystemAlert
+PURPOSE: Unified alert and notification table. Every expiry warning, overdue
+         maintenance flag, fuel anomaly, AI risk flag, and critical event
+         generates one row here. Routed to the appropriate role.
+         This is the single source of truth for all system notifications.
+         Uses polymorphic entity reference (entity_type + entity_id) to
+         reference any table without requiring separate FK columns.
+================================================================================
+
+  COLUMN               | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                                    | EXAMPLE
+  ---------------------|---------------|---------------------------|----------------------------------------------------------------|-------------------
+  id                   | uuid          | PK, NOT NULL              | Unique record identifier                                       | u7v8w9x0-...
+  alert_type           | varchar(50)   | NOT NULL                  | See valid alert types below                                    | Overdue-Maintenance
+  severity             | varchar(10)   | NOT NULL                  | Info / Warning / Critical                                      | Critical
+  entity_type          | varchar(50)   | NOT NULL                  | Which entity this alert is about (polymorphic)                 | Asset
+  entity_id            | uuid          | NOT NULL                  | Primary key of the referenced entity (polymorphic)             | c3d4e5f6-...
+  entity_display_name  | varchar(200)  | NOT NULL                  | Human-readable label for UI display                            | EQ-2024-0003 CAT 320 Excavator
+  message              | text          | NOT NULL                  | Plain English alert message                                    | Engine oil change overdue by 3 hours on EQ-2024-0003
+  action_required      | text          | NULL                      | Suggested action for the alert recipient                       | Open a preventive maintenance job card immediately
+  routed_to_role       | varchar(30)   | NOT NULL                  | Role code of intended recipient (from Role.role_code)          | FLEET_MGR
+  is_acknowledged      | boolean       | NOT NULL, DEFAULT false   | Whether recipient has acknowledged this alert                  | false
+  acknowledged_by      | uuid          | FK -> Employee.id, NULL   | User who acknowledged — null until acknowledged                | null
+  acknowledged_at      | timestamptz   | NULL                      | Timestamp of acknowledgment                                    | null
+  auto_resolved        | boolean       | NOT NULL, DEFAULT false   | True if alert resolved without manual action                   | false
+  auto_resolved_at     | timestamptz   | NULL                      | Timestamp of auto-resolution                                   | null
+  created_at           | timestamptz   | NOT NULL, DEFAULT now()   | Alert generation timestamp                                     | 2024-07-04 06:00:00+03
+
+VALID ALERT TYPES:
+  Registration-Expiry       = Gulf registration certificate nearing or past expiry
+  Insurance-Expiry          = Insurance policy nearing or past expiry
+  Certification-Expiry      = Equipment load test certificate nearing or past expiry
+  License-Expiry            = Driver license nearing or past expiry
+  Medical-Expiry            = Driver medical fitness certificate nearing or past expiry
+  Overdue-Maintenance       = Asset has missed its OEM-scheduled service interval
+  Fuel-Anomaly              = Fuel log entry deviated beyond threshold from rolling average
+  Predictive-Risk           = AI model scored asset as High breakdown risk
+  Replacement-Threshold     = Asset cumulative repair cost crossed replacement threshold
+  Incident-Critical         = Major accident or personal injury incident was filed
+  Transit-Damage            = Post-arrival inspection showed worse condition than pre-departure
+  Warranty-Claim            = Breakdown occurred within active repair warranty period
+  Fuel-Reconciliation       = Site fuel tank variance exceeded configured threshold
+  High-Risk-Driver          = Driver behavior score dropped to High Risk category
+
+SEVERITY LEVELS AND DASHBOARD DISPLAY:
+  Info     = Blue — informational, no immediate action required
+  Warning  = Amber — requires attention within a defined timeframe
+  Critical = Red — requires immediate action or is a regulatory / safety violation
+
+ENTITY TYPES (polymorphic):
+  Asset / Driver / Project / TransferRequest / IncidentReport / MaintenanceJobCard / FuelLog
+
+AUTO-RESOLUTION LOGIC:
+  Registration-Expiry alert auto-resolves when a new GulfRegistration record is created
+  Insurance-Expiry alert auto-resolves when a new InsurancePolicy coverage record is added
+  License-Expiry alert auto-resolves when a new DriverLicense record is created
+  Overdue-Maintenance alert auto-resolves when the related job card is closed
+
+INDEX: (entity_type, entity_id) — all alerts for a specific entity
+INDEX: (alert_type, is_acknowledged) — unacknowledged alerts by type
+INDEX: (severity, is_acknowledged) — critical unacknowledged alerts
+INDEX: (routed_to_role, is_acknowledged) — role-specific alert panel
+INDEX: (created_at DESC) — chronological alert feed
+
+================================================================================
+TABLE 8: AuditLog
+PURPOSE: Immutable, append-only record of every CREATE, UPDATE, and soft-DELETE
+         operation on every core table in the system.
+         Non-repudiation: no application role including System Admin can modify
+         or delete audit log entries.
+         The database application user has INSERT-only permissions on this table.
+         Stores old and new values as JSONB for complete change history.
+================================================================================
+
+  COLUMN      | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                                    | EXAMPLE
+  ------------|---------------|---------------------------|----------------------------------------------------------------|-------------------
+  id          | uuid          | PK, NOT NULL              | Unique record identifier                                       | v8w9x0y1-...
+  table_name  | varchar(100)  | NOT NULL                  | Name of the database table where the change occurred           | TransferRequest
+  record_id   | uuid          | NOT NULL                  | Primary key value of the changed record                        | l8m9n0o1-...
+  operation   | varchar(15)   | NOT NULL                  | INSERT / UPDATE / SOFT-DELETE                                  | UPDATE
+  old_values  | jsonb         | NULL                      | Previous state of changed fields as JSON — null for INSERT     | {"status": "Pending"}
+  new_values  | jsonb         | NOT NULL                  | New state of all changed fields as JSON                        | {"status": "Approved", "approved_by": "o5p6..."}
+  changed_by  | uuid          | NOT NULL                  | Employee.id of the user who performed the operation            | o5p6q7r8-...
+  changed_at  | timestamptz   | NOT NULL, DEFAULT now()   | Exact timestamp of the change                                  | 2024-07-03 09:00:00+03
+  ip_address  | varchar(45)   | NULL                      | Client IP address at time of the operation                     | 192.168.1.44
+  user_agent  | text          | NULL                      | Browser or API client user agent string                        | Mozilla/5.0 Chrome/125...
+  session_id  | varchar(100)  | NULL                      | JWT jti claim — links audit entry to the authentication session| jti-2024-abc123xyz
+
+TABLES THAT WRITE TO AuditLog (all core operational tables):
+  Asset / EngineSpecification / GulfRegistration / PurchaseRecord / InsurancePolicy
+  AssetInsuranceCoverage / TyreRecord / BatteryRecord / EquipmentCertification
+  Employee / Driver / DriverLicense / DriverTrainingRecord
+  Project / AssetSiteAssignment / AssetOperatorAssignment
+  FuelLog / SiteFuelDelivery / UtilizationLog
+  MaintenanceJobCard / JobCardPart / JobCardLabor / BreakdownLog / RepairWarranty
+  TransferRequest / TransferInspection
+  IncidentReport / ReplacementAlert
+
+TABLES THAT DO NOT WRITE TO AuditLog (append-only or system-generated):
+  AuditLog itself / SystemAlert / AssetKPISnapshot / PredictiveMaintenanceScore
+  FuelForecast / DriverBehaviorScore / DriverBehaviorScoreHistory / TransferStateHistory
+  FuelAnomaly / IncidentMedia
+
+DATABASE PERMISSION MODEL:
+  Application DB user: INSERT only on AuditLog
+  No application role: UPDATE or DELETE on AuditLog
+  Enforced at database permission level — application code cannot override
+
+RETENTION POLICY: AuditLog records are retained permanently — never truncated or archived
+
+INDEX: (table_name, record_id, changed_at DESC) — audit trail for specific record
+INDEX: (changed_by, changed_at DESC) — all changes made by a specific user
+INDEX: (changed_at DESC) — chronological audit feed for admin viewer
+
+================================================================================
+RELATIONSHIPS IN DOMAIN GROUP 5: ANALYTICS, INTELLIGENCE & AUDIT
+================================================================================
+
+  REF | FROM TABLE                  | TO TABLE                    | CARDINALITY | FK COLUMN                           | MANDATORY | NOTES
+  ----|-----------------------------|-----------------------------|-------------|-------------------------------------|-----------|-----------------------------------------------
+  R01 | Asset                       | IncidentReport              | 1 : M       | IncidentReport.asset_id             | Yes       | One asset involved in many incidents over life
+  R02 | Driver                      | IncidentReport              | 1 : M       | IncidentReport.driver_id            | Yes       | One driver attributed to many incidents
+  R03 | Project                     | IncidentReport              | 1 : M       | IncidentReport.project_id           | No        | One site has many incident records
+  R04 | Employee                    | IncidentReport (reported)   | 1 : M       | IncidentReport.reported_by          | Yes       | One employee files many incident reports
+  R05 | Employee                    | IncidentReport (HSE)        | 1 : M       | IncidentReport.investigated_by      | No        | One HSE Officer investigates many incidents
+  R06 | IncidentReport              | IncidentMedia               | 1 : M       | IncidentMedia.incident_id           | No        | One incident has many media attachments
+  R07 | Asset                       | AssetKPISnapshot            | 1 : M       | AssetKPISnapshot.asset_id           | Yes       | One asset has one nightly KPI snapshot per day
+  R08 | Asset                       | PredictiveMaintenanceScore  | 1 : M       | PredictiveMaintenanceScore.asset_id | Yes       | One asset has many score records over time
+  R09 | Project                     | FuelForecast                | 1 : M       | FuelForecast.project_id             | Yes       | One site has many forecast records
+  R10 | Asset                       | ReplacementAlert            | 1 : M       | ReplacementAlert.asset_id           | No        | One asset can trigger multiple alerts
+  R11 | Employee                    | ReplacementAlert            | 1 : M       | ReplacementAlert.acknowledged_by    | No        | One FM acknowledges many replacement alerts
+  R12 | Employee                    | SystemAlert                 | 1 : M       | SystemAlert.acknowledged_by         | No        | One user acknowledges many system alerts
+  R13 | SystemAlert                 | All Entities                | Polymorphic | entity_type + entity_id             | No        | Any entity can generate many system alerts
+  R14 | AuditLog                    | All Core Tables             | Polymorphic | table_name + record_id              | No        | Every change to any core table writes one entry
+
+================================================================================
+END OF DATA DICTIONARY — DOMAIN GROUP 5: ANALYTICS, INTELLIGENCE & AUDIT
+================================================================================

@@ -1,0 +1,455 @@
+================================================================================
+EMS — DATA DICTIONARY
+DOMAIN GROUP 4: MAINTENANCE & TRANSFER DOMAIN
+Version 1.0 | Phase 1 Deliverable | IEEE 830 Compliant
+================================================================================
+
+TABLES IN THIS DOMAIN:
+  1. PreventiveMaintenanceSchedule
+  2. MaintenanceJobCard
+  3. JobCardPart
+  4. JobCardLabor
+  5. BreakdownLog
+  6. RepairWarranty
+  7. TransferRequest
+  8. TransferStateHistory
+  9. TransferInspection
+
+================================================================================
+TABLE 1: PreventiveMaintenanceSchedule
+PURPOSE: System-generated or admin-created schedule records defining when each
+         asset is next due for each type of preventive service, based on OEM
+         intervals and the asset's current meter reading.
+         One record per asset per service type.
+         Updated automatically when a related job card is closed.
+================================================================================
+
+  COLUMN                       | DATA TYPE      | CONSTRAINTS                              | DESCRIPTION                                              | EXAMPLE
+  -----------------------------|----------------|------------------------------------------|----------------------------------------------------------|-------------------
+  id                           | uuid           | PK, NOT NULL                             | Unique record identifier                                 | f2g3h4i5-...
+  asset_id                     | uuid           | FK -> Asset.id, NOT NULL                 | Asset this schedule belongs to                           | c3d4e5f6-...
+  service_type                 | varchar(100)   | NOT NULL                                 | See valid service types below                            | Engine-Oil
+  interval_hours               | smallint       | NULL                                     | OEM-specified service interval in engine hours           | 250
+  interval_km                  | integer        | NULL                                     | OEM-specified interval in kilometers (vehicles only)     | null
+  last_service_date            | date           | NULL                                     | Date of most recent completed service of this type       | 2024-03-10
+  last_service_meter_hours     | decimal(10,2)  | NULL                                     | Hour meter reading at last service                       | 4000.00
+  last_service_meter_km        | decimal(10,2)  | NULL                                     | Odometer at last service — vehicles only                 | null
+  next_due_date                | date           | NULL                                     | Projected calendar date of next service                  | 2024-07-10
+  next_due_hours               | decimal(10,2)  | NULL                                     | Hour meter reading when next service falls due           | 4250.00
+  next_due_km                  | decimal(10,2)  | NULL                                     | Odometer reading when next service falls due             | null
+  overdue_status               | varchar(20)    | NOT NULL, DEFAULT OK                     | OK / Warning / Critical                                  | Critical
+  last_job_card_id             | uuid           | FK -> MaintenanceJobCard.id, NULL        | Most recent closed job card for this service type        | null
+  created_at                   | timestamptz    | NOT NULL, DEFAULT now()                  | Record creation timestamp                                | 2024-01-15 09:00:00+03
+  updated_at                   | timestamptz    | NOT NULL, DEFAULT now()                  | Last modification timestamp — updated on job card close  | 2024-07-04 06:00:00+03
+
+UNIQUE CONSTRAINT: (asset_id, service_type) — one schedule record per service type per asset
+
+VALID SERVICE TYPES:
+  Engine-Oil            = Engine oil change
+  Oil-Filter            = Engine oil filter replacement
+  Air-Filter            = Air filter replacement
+  Fuel-Filter           = Fuel filter replacement
+  Hydraulic-Oil         = Hydraulic oil change (equipment only)
+  Greasing              = Chassis and component greasing
+  Full-Inspection       = Full OEM-specified periodic inspection
+  Coolant               = Coolant flush and replacement
+  Brake-Fluid           = Brake fluid replacement (vehicles)
+  Transmission-Oil      = Transmission oil change
+
+OVERDUE STATUS LOGIC (thresholds configurable in SystemConfig):
+  OK       = Current meter < (next_due_hours * 1.05) — within 5% of interval
+  Warning  = Current meter >= (next_due_hours * 1.05) — 5% past due
+  Critical = Current meter >= (next_due_hours * 1.10) — 10% past due
+
+BUSINESS RULES:
+  - Records auto-generated when EngineSpecification is saved for an asset
+  - next_due_hours = last_service_meter_hours + interval_hours
+  - next_due_date = last_service_date + estimated days (based on avg daily hours usage)
+  - Recalculated automatically each time a related job card is closed
+  - If a corrective job card replaces a component (e.g. oil change during repair),
+    the corresponding preventive schedule record is updated to reset the next due date
+  - Overdue status checked nightly by batch job and SystemAlerts generated accordingly
+
+INDEX: (asset_id, service_type) — unique lookup
+INDEX: (next_due_date) — supports upcoming service dashboard panel
+INDEX: (overdue_status) — supports overdue filter
+
+================================================================================
+TABLE 2: MaintenanceJobCard
+PURPOSE: The master record for any maintenance activity whether scheduled
+         preventive or unplanned corrective repair.
+         Every physical workshop job card has a digital counterpart here.
+         Parent to JobCardPart (parts consumed) and JobCardLabor (technician hours).
+         State machine: Open -> In-Progress -> Parts-Pending -> Completed-Pending-Approval -> Closed
+================================================================================
+
+  COLUMN                          | DATA TYPE      | CONSTRAINTS                                    | DESCRIPTION                                              | EXAMPLE
+  --------------------------------|----------------|------------------------------------------------|----------------------------------------------------------|-------------------
+  id                              | uuid           | PK, NOT NULL                                   | Unique record identifier                                 | g3h4i5j6-...
+  job_card_number                 | varchar(30)    | UNIQUE, NOT NULL                               | Auto-generated. Format: JC-YYYY-NNNNNN                   | JC-2024-000341
+  asset_id                        | uuid           | FK -> Asset.id, NOT NULL                       | Asset being serviced or repaired                         | c3d4e5f6-...
+  job_card_type                   | varchar(20)    | NOT NULL                                       | Preventive / Corrective                                  | Corrective
+  service_type                    | varchar(100)   | NULL                                           | Populated for Preventive — matches PM schedule type      | null
+  fault_description               | text           | NULL                                           | Populated for Corrective — symptom description           | Hydraulic pump failure loss of bucket pressure
+  fault_category                  | varchar(50)    | NULL                                           | Engine / Hydraulics / Electrical / Structural / Tyres /  | Hydraulics
+                                  |                |                                                | Brakes / Transmission / Cooling / Other                  |
+  status                          | varchar(40)    | NOT NULL, DEFAULT Open                         | See valid statuses and state machine below               | Parts-Pending
+  workshop_type                   | varchar(20)    | NOT NULL                                       | Internal / External                                      | Internal
+  vendor_id                       | uuid           | FK -> Vendor.id, NULL                          | External vendor — mandatory if workshop_type = External  | null
+  vendor_invoice_reference        | varchar(100)   | NULL                                           | External vendor invoice number                           | null
+  project_id                      | uuid           | FK -> Project.id, NULL                         | Project site where asset was during the work             | u1v2w3x4-...
+  yard_location_id                | uuid           | FK -> WarehouseYardLocation.id, NULL           | Yard location if work done in yard                       | null
+  meter_reading_at_open_hours     | decimal(10,2)  | NULL                                           | Hour meter when job card was opened                      | 4253.50
+  meter_reading_at_open_km        | decimal(10,2)  | NULL                                           | Odometer when job card was opened (vehicles)             | null
+  meter_reading_at_close_hours    | decimal(10,2)  | NULL                                           | Hour meter when job card was closed by supervisor        | null
+  meter_reading_at_close_km       | decimal(10,2)  | NULL                                           | Odometer when closed (vehicles)                          | null
+  opened_at                       | timestamptz    | NOT NULL, DEFAULT now()                        | Job card creation timestamp                              | 2024-07-01 09:00:00+03
+  parts_pending_since             | timestamptz    | NULL                                           | Timestamp when moved to Parts-Pending status             | 2024-07-02 10:00:00+03
+  parts_expected_by               | date           | NULL                                           | Expected date parts will arrive                          | 2024-07-08
+  completed_at                    | timestamptz    | NULL                                           | Timestamp when mechanic marked Completed                 | null
+  closed_at                       | timestamptz    | NULL                                           | Timestamp when supervisor closed the card                | null
+  total_parts_cost                | decimal(12,2)  | NOT NULL, DEFAULT 0                            | Running sum of all JobCardPart.total_cost                | 12400.00
+  total_labor_cost                | decimal(12,2)  | NOT NULL, DEFAULT 0                            | Running sum of all JobCardLabor.total_labor_cost         | 1800.00
+  total_cost                      | decimal(12,2)  | NOT NULL, DEFAULT 0                            | total_parts_cost + total_labor_cost                      | 14200.00
+  created_by                      | uuid           | FK -> Employee.id, NOT NULL                    | Mechanic or supervisor who opened the card               | o5p6q7r8-...
+  approved_by                     | uuid           | FK -> Employee.id, NULL                        | Workshop Supervisor who closed — null until closed       | null
+  approval_remarks                | text           | NULL                                           | Supervisor sign-off remarks — required at closure        | null
+  breakdown_log_id                | uuid           | FK -> BreakdownLog.id, NULL                    | Linked breakdown — mandatory if job_card_type = Corrective| h4i5j6k7-...
+  preventive_schedule_id          | uuid           | FK -> PreventiveMaintenanceSchedule.id, NULL   | Linked PM schedule — mandatory if job_card_type = Preventive| null
+  is_archived                     | boolean        | NOT NULL, DEFAULT false                        | Soft delete flag                                         | false
+  created_at                      | timestamptz    | NOT NULL, DEFAULT now()                        | Record creation timestamp                                | 2024-07-01 09:00:00+03
+  updated_at                      | timestamptz    | NOT NULL, DEFAULT now()                        | Last modification timestamp                              | 2024-07-02 10:00:00+03
+
+VALID STATUSES AND STATE MACHINE:
+  Open                        -> In-Progress                  (Mechanic begins work)
+  In-Progress                 -> Parts-Pending                (Parts unavailable)
+  Parts-Pending               -> In-Progress                  (Parts received, work resumes)
+  In-Progress                 -> Completed-Pending-Approval   (Mechanic marks work done)
+  Open                        -> Completed-Pending-Approval   (Simple inspection, no parts/labor)
+  Completed-Pending-Approval  -> Closed                       (Supervisor approves and signs off)
+  Completed-Pending-Approval  -> In-Progress                  (Supervisor rejects — more work needed)
+
+BUSINESS RULES:
+  - job_card_number auto-generated: JC-[YYYY]-[000001 to 999999]
+  - A Closed job card is IMMUTABLE — no edits permitted after supervisor closure
+  - A Corrective job card must be linked to exactly one BreakdownLog
+  - A Preventive job card must be linked to exactly one PreventiveMaintenanceSchedule
+  - Asset status is set to Under-Maintenance when job card is created, Active when closed
+  - Transfer dispatch is BLOCKED while any Open, In-Progress, or Parts-Pending job card exists
+  - total_costs are auto-recalculated on every JobCardPart and JobCardLabor entry
+
+INDEX: (asset_id, opened_at DESC)
+INDEX: (status) — supports approval queue and open card filters
+INDEX: (breakdown_log_id) — supports fast breakdown-to-jobcard lookup
+
+================================================================================
+TABLE 3: JobCardPart
+PURPOSE: Each part consumed during a maintenance job.
+         Child of MaintenanceJobCard — one job can consume many parts.
+         References the SparePart master catalog for part details.
+         Each entry represents one part type; quantity field handles multiples.
+================================================================================
+
+  COLUMN          | DATA TYPE      | CONSTRAINTS                    | DESCRIPTION                                         | EXAMPLE
+  ----------------|----------------|--------------------------------|-----------------------------------------------------|-------------------
+  id              | uuid           | PK, NOT NULL                   | Unique record identifier                            | h4i5j6k7-...
+  job_card_id     | uuid           | FK -> MaintenanceJobCard.id    | Parent job card                                     | g3h4i5j6-...
+                  |                | NOT NULL                       |                                                     |
+  spare_part_id   | uuid           | FK -> SparePart.id, NOT NULL   | Part from the master parts catalog                  | e1f2g3h4-...
+  quantity        | decimal(8,2)   | NOT NULL                       | Quantity of this part consumed                      | 1.00
+  unit_cost       | decimal(10,2)  | NOT NULL                       | Actual cost per unit at time of use                 | 12400.00
+  total_cost      | decimal(12,2)  | NOT NULL                       | Auto-calculated: quantity * unit_cost               | 12400.00
+  part_condition  | varchar(20)    | NOT NULL, DEFAULT New          | New / Reconditioned / Warranty-Replacement           | New
+  warranty_claim  | boolean        | NOT NULL, DEFAULT false        | True if this part was replaced under warranty        | false
+  notes           | text           | NULL                           | Additional notes — OEM part number cross-ref etc.   | OEM part number 3G-0435
+  created_at      | timestamptz    | NOT NULL, DEFAULT now()        | Record creation timestamp                           | 2024-07-01 11:00:00+03
+
+BUSINESS RULE: After each insert, parent MaintenanceJobCard.total_parts_cost is recalculated
+BUSINESS RULE: Cannot be added to a job card with status Closed
+INDEX: (job_card_id) — fast retrieval of all parts for a given job card
+INDEX: (spare_part_id) — track usage frequency of parts across fleet
+
+================================================================================
+TABLE 4: JobCardLabor
+PURPOSE: Each technician labor entry on a maintenance job card.
+         Multiple technicians can log labor on the same job card.
+         The same technician can log on multiple days for extended repairs.
+         Each row is one technician's labor on one specific work date.
+================================================================================
+
+  COLUMN              | DATA TYPE      | CONSTRAINTS                    | DESCRIPTION                                          | EXAMPLE
+  --------------------|----------------|--------------------------------|------------------------------------------------------|-------------------
+  id                  | uuid           | PK, NOT NULL                   | Unique record identifier                             | i5j6k7l8-...
+  job_card_id         | uuid           | FK -> MaintenanceJobCard.id    | Parent job card                                      | g3h4i5j6-...
+                      |                | NOT NULL                       |                                                      |
+  technician_id       | uuid           | FK -> Employee.id, NOT NULL    | Technician logging this labor entry                  | o5p6q7r8-...
+  work_date           | date           | NOT NULL                       | Date on which this labor was performed               | 2024-07-01
+  hours_worked        | decimal(4,2)   | NOT NULL                       | Number of hours worked in this entry                 | 6.00
+  labor_rate_per_hour | decimal(8,2)   | NOT NULL                       | Labor rate in local currency per hour                | 300.00
+  total_labor_cost    | decimal(10,2)  | NOT NULL                       | Auto-calculated: hours_worked * labor_rate_per_hour  | 1800.00
+  work_description    | text           | NULL                           | Plain text description of work done                  | Removed hydraulic pump assembly and inspected
+  created_at          | timestamptz    | NOT NULL                       | Record creation timestamp                            | 2024-07-01 16:00:00+03
+                      |                | DEFAULT now()                  |                                                      |
+
+BUSINESS RULE: After each insert, parent MaintenanceJobCard.total_labor_cost is recalculated
+BUSINESS RULE: Cannot be added to a job card with status Closed
+INDEX: (job_card_id)
+INDEX: (technician_id, work_date)
+
+================================================================================
+TABLE 5: BreakdownLog
+PURPOSE: Records every unplanned equipment failure event.
+         Captures the breakdown event, its context, and links to the corrective
+         MaintenanceJobCard raised as a result. The time from reported_at to
+         job card creation is computed as Response Time — a core MTTR component.
+================================================================================
+
+  COLUMN                    | DATA TYPE      | CONSTRAINTS                          | DESCRIPTION                                              | EXAMPLE
+  --------------------------|----------------|--------------------------------------|----------------------------------------------------------|-------------------
+  id                        | uuid           | PK, NOT NULL                         | Unique record identifier                                 | j6k7l8m9-...
+  breakdown_number          | varchar(30)    | UNIQUE, NOT NULL                     | Auto-generated reference. Format: BD-YYYY-NNNNNN         | BD-2024-000089
+  asset_id                  | uuid           | FK -> Asset.id, NOT NULL             | Asset that experienced the breakdown                     | c3d4e5f6-...
+  driver_id                 | uuid           | FK -> Driver.id, NOT NULL            | Operator on shift at the time of breakdown               | p6q7r8s9-...
+  project_id                | uuid           | FK -> Project.id, NULL               | Project site where breakdown occurred                    | u1v2w3x4-...
+  yard_location_id          | uuid           | FK -> WarehouseYardLocation.id, NULL | Yard location if breakdown occurred in yard              | null
+  transfer_request_id       | uuid           | NULL                                 | FK to TransferRequest if breakdown occurred in transit   | null
+  occurred_at               | timestamptz    | NOT NULL                             | Actual date and time breakdown happened                  | 2024-07-01 07:30:00+03
+  reported_at               | timestamptz    | NOT NULL, DEFAULT now()              | Date and time breakdown was reported in system           | 2024-07-01 08:00:00+03
+  reported_by               | uuid           | FK -> Employee.id, NOT NULL          | Employee who filed this breakdown report                 | o5p6q7r8-...
+  symptom_description       | text           | NOT NULL                             | Plain text description of what the operator observed     | Loss of hydraulic pressure in bucket circuit
+  fault_category            | varchar(50)    | NOT NULL                             | Engine / Hydraulics / Electrical / Structural / Tyres /  | Hydraulics
+                            |                |                                      | Brakes / Transmission / Cooling / Other                  |
+  asset_self_recovered      | boolean        | NOT NULL, DEFAULT false              | True if asset drove to workshop under its own power      | false
+  recovery_vehicle_required | boolean        | NOT NULL, DEFAULT false              | True if a tow or recovery vehicle was dispatched         | true
+  response_time_minutes     | integer        | NULL                                 | Minutes from reported_at to job card creation. Auto-calc | 65
+  is_repeat_failure         | boolean        | NOT NULL, DEFAULT false              | True if same fault_category broke down within 90 days    | false
+  warranty_claim_applicable | boolean        | NOT NULL, DEFAULT false              | True if an active RepairWarranty covers this fault       | false
+  root_cause                | varchar(200)   | NULL                                 | Root cause — completed after repair by mechanic          | null
+  root_cause_category       | varchar(50)    | NULL                                 | Deferred-Maintenance / Operating-Error / Part-Failure /  | null
+                            |                |                                      | Unknown                                                  |
+  created_at                | timestamptz    | NOT NULL, DEFAULT now()              | Record creation timestamp                                | 2024-07-01 08:00:00+03
+  updated_at                | timestamptz    | NOT NULL, DEFAULT now()              | Last modification timestamp                              | 2024-07-01 08:00:00+03
+
+BUSINESS RULES:
+  - breakdown_number auto-generated: BD-[YYYY]-[000001 to 999999]
+  - Creating a BreakdownLog automatically sets Asset.current_status = Under-Maintenance
+  - response_time_minutes auto-computed when the linked MaintenanceJobCard is created
+  - is_repeat_failure auto-set: check if same asset + same fault_category in last 90 days
+  - warranty_claim_applicable auto-set: check if active RepairWarranty exists for asset + fault
+  - Either project_id or yard_location_id must be populated — transfer_request_id is also allowed
+
+INDEX: (asset_id, occurred_at DESC)
+INDEX: (driver_id, occurred_at DESC)
+INDEX: (fault_category) — supports chronic fault analysis
+INDEX: (is_repeat_failure) — supports repeat failure reporting
+
+================================================================================
+TABLE 6: RepairWarranty
+PURPOSE: When an external vendor provides a warranty on a completed repair,
+         this record captures the scope, duration, and contact details.
+         The system checks active warranties when a new BreakdownLog is created
+         to flag potential warranty claims automatically.
+================================================================================
+
+  COLUMN                      | DATA TYPE     | CONSTRAINTS                         | DESCRIPTION                                          | EXAMPLE
+  ----------------------------|---------------|-------------------------------------|------------------------------------------------------|-------------------
+  id                          | uuid          | PK, NOT NULL                        | Unique record identifier                             | k7l8m9n0-...
+  job_card_id                 | uuid          | UNIQUE, FK -> MaintenanceJobCard.id | Job card this warranty is attached to — one to one   | g3h4i5j6-...
+                              |               | NOT NULL                            |                                                      |
+  vendor_id                   | uuid          | FK -> Vendor.id, NOT NULL           | External vendor providing the warranty               | f6g7h8i9-...
+  warranty_description        | text          | NOT NULL                            | Plain text description of what the warranty covers   | All hydraulic pump components and associated labor
+  warranty_start_date         | date          | NOT NULL                            | Warranty coverage start date                         | 2024-07-15
+  warranty_end_date           | date          | NOT NULL                            | Warranty expiry date                                 | 2025-07-15
+  scope_of_coverage           | text          | NULL                                | Detailed breakdown of covered parts and labor        | Parts and labor for hydraulic pump failure recurrence
+  vendor_contact_for_claims   | varchar(200)  | NULL                                | Vendor contact email or phone for raising claims     | warranty@hydraulicservices.qa
+  is_active                   | boolean       | NOT NULL, DEFAULT true              | False when warranty has expired or been voided       | true
+  claimed_at                  | timestamptz   | NULL                                | Timestamp if a warranty claim was raised             | null
+  claim_outcome               | varchar(200)  | NULL                                | Outcome of the warranty claim when resolved          | null
+  created_at                  | timestamptz   | NOT NULL, DEFAULT now()             | Record creation timestamp                            | 2024-07-15 10:00:00+03
+  updated_at                  | timestamptz   | NOT NULL, DEFAULT now()             | Last modification timestamp                          | 2024-07-15 10:00:00+03
+
+BUSINESS RULE: Can only be created after the linked job card is Closed
+BUSINESS RULE: When a new BreakdownLog is created, system checks if any active RepairWarranty
+               exists for the same asset and a matching fault_category — if yes,
+               BreakdownLog.warranty_claim_applicable is set to true and a SystemAlert is raised
+INDEX: (warranty_end_date) — supports expiry checking
+INDEX: (vendor_id) — supports vendor performance tracking
+
+================================================================================
+TABLE 7: TransferRequest
+PURPOSE: The master record for a formal equipment transfer between two sites
+         or between a site and the equipment yard.
+         Captures every stage from submission through approval, dispatch,
+         transit, and arrival confirmation.
+         Subject to compliance checks: Registration, Insurance, Driver License,
+         and open Job Cards — all must be valid before dispatch is permitted.
+
+CHECK CONSTRAINT: source_project_id XOR source_yard_id — exactly one must be populated
+CHECK CONSTRAINT: destination_project_id XOR destination_yard_id — exactly one must be populated
+================================================================================
+
+  COLUMN                        | DATA TYPE      | CONSTRAINTS                          | DESCRIPTION                                              | EXAMPLE
+  ------------------------------|----------------|--------------------------------------|----------------------------------------------------------|-------------------
+  id                            | uuid           | PK, NOT NULL                         | Unique record identifier                                 | l8m9n0o1-...
+  transfer_number               | varchar(30)    | UNIQUE, NOT NULL                     | Auto-generated. Format: TR-YYYY-NNNNNN                   | TR-2024-000041
+  asset_id                      | uuid           | FK -> Asset.id, NOT NULL             | Asset being transferred                                  | c3d4e5f6-...
+  source_project_id             | uuid           | FK -> Project.id, NULL               | Source project — null if asset is coming from a yard     | null
+  source_yard_id                | uuid           | FK -> WarehouseYardLocation.id, NULL | Source yard — null if asset is coming from a project     | v2w3x4y5-...
+  destination_project_id        | uuid           | FK -> Project.id, NULL               | Destination project — null if going to yard              | u1v2w3x4-...
+  destination_yard_id           | uuid           | FK -> WarehouseYardLocation.id, NULL | Destination yard — null if going to a project            | null
+  requested_by                  | uuid           | FK -> Employee.id, NOT NULL          | Employee who submitted this transfer request             | o5p6q7r8-...
+  requested_at                  | timestamptz    | NOT NULL, DEFAULT now()              | Timestamp of request submission                          | 2024-07-02 10:00:00+03
+  required_by_date              | date           | NULL                                 | Date by which asset is needed at destination             | 2024-07-05
+  transfer_reason               | varchar(50)    | NOT NULL                             | See valid transfer reasons below                         | Project-Mobilization
+  reason_details                | text           | NULL                                 | Free text — mandatory if transfer_reason = Other         | null
+  current_status                | varchar(40)    | NOT NULL, DEFAULT Pending            | See valid statuses and state machine below               | Approved
+  approved_by                   | uuid           | FK -> Employee.id, NULL              | Fleet Manager who approved — null until approved         | o5p6q7r8-...
+  approved_at                   | timestamptz    | NULL                                 | Timestamp of approval decision                           | 2024-07-03 09:00:00+03
+  approval_remarks              | text           | NULL                                 | Fleet Manager notes on approval or rejection             | Approved for site mobilization
+  rejection_reason              | text           | NULL                                 | Mandatory if status = Rejected                           | null
+  gate_pass_number              | varchar(100)   | NULL                                 | Official gate pass — entered at dispatch                 | GP-20240703
+  departure_date                | timestamptz    | NULL                                 | Actual asset departure timestamp                         | null
+  arrival_date                  | timestamptz    | NULL                                 | Actual arrival — set on arrival confirmation             | null
+  driver_id                     | uuid           | FK -> Driver.id, NULL                | Company driver for the move — null if third party used   | null
+  transporter_company           | varchar(200)   | NULL                                 | Third-party transporter company name                     | null
+  transporter_vehicle_plate     | varchar(30)    | NULL                                 | Low-bed or trailer vehicle plate number                  | null
+  transporter_driver_name       | varchar(200)   | NULL                                 | Third-party driver name                                  | null
+  waybill_number                | varchar(100)   | NULL                                 | Waybill or consignment note number                       | null
+  carnet_de_passage_number      | varchar(100)   | NULL                                 | Cross-border movement authorization document             | null
+  export_cert_reference         | varchar(100)   | NULL                                 | Export certificate reference for cross-border transfer   | null
+  customs_clearance_reference   | varchar(100)   | NULL                                 | Customs clearance document reference                     | null
+  is_archived                   | boolean        | NOT NULL, DEFAULT false              | Soft delete flag                                         | false
+  created_at                    | timestamptz    | NOT NULL, DEFAULT now()              | Record creation timestamp                                | 2024-07-02 10:00:00+03
+  updated_at                    | timestamptz    | NOT NULL, DEFAULT now()              | Last modification timestamp                              | 2024-07-03 09:00:00+03
+
+VALID TRANSFER REASONS:
+  Project-Mobilization    = Asset moving to a new project
+  Project-Demobilization  = Asset returning from a completed project
+  Reallocation            = Asset moved from one active project to another
+  Breakdown-Recovery      = Asset moved to workshop for major repair
+  Return-to-Yard          = Asset returned to central yard
+  Other                   = Any other reason — reason_details mandatory
+
+VALID STATUSES AND STATE MACHINE:
+  Pending                -> Approved            (Fleet Manager approves + compliance passed)
+  Pending                -> Rejected            (Fleet Manager rejects with reason)
+  Approved               -> Dispatched          (Gate pass entered + pre-departure inspection done)
+  Approved               -> Cancelled           (Fleet Manager cancels before dispatch)
+  Dispatched             -> In-Transit          (Asset physically departs source site)
+  In-Transit             -> In-Transit-Breakdown (Breakdown reported during transit)
+  In-Transit-Breakdown   -> In-Transit          (Breakdown resolved, transit resumes)
+  In-Transit-Breakdown   -> Cancelled           (Breakdown unrecoverable, transfer cancelled)
+  In-Transit             -> Completed           (Arrival confirmed by receiving Site Engineer)
+
+COMPLIANCE CHECKS BEFORE DISPATCH (all must pass):
+  1. GulfRegistration.registration_expiry_date > today
+  2. Active InsurancePolicy coverage exists for asset
+  3. If company driver: DriverLicense.expiry_date > today
+  4. No open MaintenanceJobCard for this asset (status Open/In-Progress/Parts-Pending)
+  Failed checks BLOCK dispatch — Fleet Manager may override with logged reason
+
+BUSINESS RULES:
+  - transfer_number auto-generated: TR-[YYYY]-[000001 to 999999]
+  - On Completed: AssetSiteAssignment source record closed, destination record opened
+  - On Completed: Asset.current_status set back to Active
+  - Asset.current_status set to In-Transit on dispatch
+  - Cannot dispatch while Asset.current_status = Under-Maintenance
+
+INDEX: (asset_id, current_status)
+INDEX: (current_status) — supports approval queue
+INDEX: (requested_by, requested_at DESC)
+
+================================================================================
+TABLE 8: TransferStateHistory
+PURPOSE: Append-only audit trail of every status transition on a TransferRequest.
+         One record per state change. Minimum one record per transfer (initial Pending).
+         Enables full chronological trace of the transfer lifecycle.
+================================================================================
+
+  COLUMN              | DATA TYPE    | CONSTRAINTS                    | DESCRIPTION                                         | EXAMPLE
+  --------------------|--------------|--------------------------------|-----------------------------------------------------|-------------------
+  id                  | uuid         | PK, NOT NULL                   | Unique record identifier                            | m9n0o1p2-...
+  transfer_request_id | uuid         | FK -> TransferRequest.id       | Parent transfer request                             | l8m9n0o1-...
+                      |              | NOT NULL                       |                                                     |
+  from_status         | varchar(40)  | NULL                           | Previous status — null for the initial Pending entry| Pending
+  to_status           | varchar(40)  | NOT NULL                       | New status after this state transition              | Approved
+  changed_by          | uuid         | FK -> Employee.id, NOT NULL    | Employee who triggered this state change            | o5p6q7r8-...
+  changed_at          | timestamptz  | NOT NULL, DEFAULT now()        | Exact timestamp of the state change                 | 2024-07-03 09:00:00+03
+  remarks             | text         | NULL                           | Optional notes for this transition                  | Approved for site mobilization
+
+NOTE: Append-only table — no UPDATE or DELETE ever occurs
+INDEX: (transfer_request_id, changed_at DESC) — chronological state history per transfer
+
+================================================================================
+TABLE 9: TransferInspection
+PURPOSE: Pre-departure and post-arrival condition inspection records.
+         Exactly two inspection records are created per completed transfer:
+         one at departure (Pre-Departure) and one at arrival (Post-Arrival).
+         If post-arrival condition is worse than pre-departure, a SystemAlert
+         is raised flagging potential transit damage.
+================================================================================
+
+  COLUMN                    | DATA TYPE      | CONSTRAINTS                    | DESCRIPTION                                          | EXAMPLE
+  --------------------------|----------------|--------------------------------|------------------------------------------------------|-------------------
+  id                        | uuid           | PK, NOT NULL                   | Unique record identifier                             | n0o1p2q3-...
+  transfer_request_id       | uuid           | FK -> TransferRequest.id       | Parent transfer request                              | l8m9n0o1-...
+                            |                | NOT NULL                       |                                                      |
+  inspection_type           | varchar(20)    | NOT NULL                       | Pre-Departure / Post-Arrival                         | Pre-Departure
+  inspection_date           | timestamptz    | NOT NULL                       | Date and time inspection was conducted               | 2024-07-03 07:00:00+03
+  inspected_by              | uuid           | FK -> Employee.id, NOT NULL    | Employee who conducted this inspection               | o5p6q7r8-...
+  tyre_condition            | varchar(10)    | NOT NULL                       | Pass / Fail                                          | Pass
+  tyre_condition_remark     | text           | NULL                           | Notes on tyre condition                              | All four tyres in good condition
+  lights_operational        | varchar(10)    | NOT NULL                       | Pass / Fail / NA                                     | Pass
+  fluid_levels_checked      | varchar(10)    | NOT NULL                       | Pass / Fail / NA                                     | Pass
+  body_damage_noted         | boolean        | NOT NULL, DEFAULT false        | Whether any body damage was observed                 | false
+  body_damage_description   | text           | NULL                           | Mandatory if body_damage_noted = true                | null
+  fuel_level_percent        | smallint       | NULL                           | Fuel level at time of inspection (0 to 100)          | 75
+  meter_reading_hours       | decimal(10,2)  | NULL                           | Hour meter reading at inspection (equipment)         | null
+  meter_reading_km          | decimal(10,2)  | NULL                           | Odometer reading at inspection (vehicles)            | 28440.00
+  overall_condition         | varchar(10)    | NOT NULL                       | Good / Fair / Poor                                   | Good
+  photos_attached           | boolean        | NOT NULL, DEFAULT false        | Whether photographic evidence was uploaded           | true
+  general_remarks           | text           | NULL                           | General inspection observations and notes            | Vehicle in good condition and ready for transfer
+  created_at                | timestamptz    | NOT NULL, DEFAULT now()        | Record creation timestamp                            | 2024-07-03 07:30:00+03
+
+UNIQUE CONSTRAINT: (transfer_request_id, inspection_type) — one of each type per transfer
+BUSINESS RULE: Pre-Departure inspection must be completed before dispatch is permitted
+BUSINESS RULE: Post-Arrival inspection must be completed before arrival is confirmed as Completed
+BUSINESS RULE: If Post-Arrival overall_condition is worse than Pre-Departure, or if
+               body_damage_noted is true on Post-Arrival but false on Pre-Departure,
+               a Critical SystemAlert is generated to the Fleet Manager
+
+================================================================================
+RELATIONSHIPS IN DOMAIN GROUP 4: MAINTENANCE & TRANSFER
+================================================================================
+
+  REF | FROM TABLE                      | TO TABLE                          | CARDINALITY | FK COLUMN                                      | MANDATORY | NOTES
+  ----|---------------------------------|-----------------------------------|-------------|------------------------------------------------|-----------|-----------------------------------------------
+  R01 | Asset                           | PreventiveMaintenanceSchedule     | 1 : M       | PreventiveMaintenanceSchedule.asset_id         | Yes       | One asset has one schedule record per service type
+  R02 | Asset                           | MaintenanceJobCard                | 1 : M       | MaintenanceJobCard.asset_id                    | Yes       | One asset has many job cards over its life
+  R03 | Employee                        | MaintenanceJobCard (created_by)   | 1 : M       | MaintenanceJobCard.created_by                  | Yes       | One mechanic creates many job cards
+  R04 | Employee                        | MaintenanceJobCard (approved_by)  | 1 : M       | MaintenanceJobCard.approved_by                 | No        | One supervisor approves many job cards
+  R05 | Vendor                          | MaintenanceJobCard                | 1 : M       | MaintenanceJobCard.vendor_id                   | No        | External vendor handles many job cards
+  R06 | MaintenanceJobCard              | JobCardPart                       | 1 : M       | JobCardPart.job_card_id                        | No        | Job card consumes many parts (zero for inspections)
+  R07 | SparePart                       | JobCardPart                       | 1 : M       | JobCardPart.spare_part_id                      | Yes       | One part appears in many job card lines
+  R08 | MaintenanceJobCard              | JobCardLabor                      | 1 : M       | JobCardLabor.job_card_id                       | No        | Job card has many labor entries
+  R09 | Employee                        | JobCardLabor (technician)         | 1 : M       | JobCardLabor.technician_id                     | Yes       | One technician logs labor on many job cards
+  R10 | BreakdownLog                    | MaintenanceJobCard                | 1 : 1       | MaintenanceJobCard.breakdown_log_id            | Yes       | Every breakdown triggers exactly one corrective job card
+  R11 | Asset                           | BreakdownLog                      | 1 : M       | BreakdownLog.asset_id                          | Yes       | One asset has many breakdown records over its life
+  R12 | Driver                          | BreakdownLog                      | 1 : M       | BreakdownLog.driver_id                         | Yes       | One driver attributed to many breakdown events
+  R13 | MaintenanceJobCard              | RepairWarranty                    | 1 : 0..1    | RepairWarranty.job_card_id                     | No        | External repair job card optionally has one warranty
+  R14 | Vendor                          | RepairWarranty                    | 1 : M       | RepairWarranty.vendor_id                       | Yes       | One vendor provides many repair warranties
+  R15 | Asset                           | TransferRequest                   | 1 : M       | TransferRequest.asset_id                       | Yes       | One asset has many transfer records over its life
+  R16 | Project                         | TransferRequest (source)          | 1 : M       | TransferRequest.source_project_id              | No        | One project is source for many transfers
+  R17 | Project                         | TransferRequest (destination)     | 1 : M       | TransferRequest.destination_project_id         | No        | One project is destination for many transfers
+  R18 | WarehouseYardLocation           | TransferRequest (source)          | 1 : M       | TransferRequest.source_yard_id                 | No        | One yard is source for many transfers (XOR R16)
+  R19 | WarehouseYardLocation           | TransferRequest (destination)     | 1 : M       | TransferRequest.destination_yard_id            | No        | One yard is destination for many transfers (XOR R17)
+  R20 | Employee                        | TransferRequest (requested_by)    | 1 : M       | TransferRequest.requested_by                   | Yes       | One employee raises many transfer requests
+  R21 | Employee                        | TransferRequest (approved_by)     | 1 : M       | TransferRequest.approved_by                    | No        | One fleet manager approves many transfers
+  R22 | Driver                          | TransferRequest                   | 1 : M       | TransferRequest.driver_id                      | No        | One driver assigned to many transfer moves
+  R23 | TransferRequest                 | TransferStateHistory              | 1 : M       | TransferStateHistory.transfer_request_id       | Yes       | One transfer has many state history entries
+  R24 | TransferRequest                 | TransferInspection                | 1 : M       | TransferInspection.transfer_request_id         | Yes       | One transfer has exactly two inspection records
+  R25 | PreventiveMaintenanceSchedule   | MaintenanceJobCard                | 1 : M       | MaintenanceJobCard.preventive_schedule_id      | No        | One PM schedule links to many preventive job cards
+
+================================================================================
+END OF DATA DICTIONARY — DOMAIN GROUP 4: MAINTENANCE & TRANSFER
+================================================================================

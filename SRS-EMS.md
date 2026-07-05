@@ -146,6 +146,12 @@ The system will enforce role-based access control aligned to five primary operat
 
 **Explicitly outside scope for this twelve-week prototype:** live GPS telematics integration, full ERP or HR system integration, mobile native application, full procurement and inventory management module, and payroll or HR management.
 
+<div align="center">
+  <img src="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/Context%20Diagram%20Level%200.png" width="85%" style="border: 1px solid #E2E8F0; border-radius: 6px;">
+  <br><br>
+  <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/Context%20Diagram%20Level%200.png" target="_blank">Context Diagram Level 0 </a></b>
+  <p><i>Figure 1.1: Global Functional Boundary and External Entities</i></p>
+</div>
 ---
 
 ## 1.3 Definitions, Acronyms, and Abbreviations
@@ -754,6 +760,12 @@ The ML service (Python FastAPI) operates as a sidecar service alongside the appl
 
 This architecture was chosen over alternatives (monolithic MVC or microservices) for the following reasons: sufficient separation of concerns for a twelve-week project without microservice orchestration overhead; independent evolution of front end, back end, and data layer; horizontal scaling support for the API tier; and correct runtime separation between Python (ML/data science) and Node.js (high-concurrency I/O).
 
+<div align="center">
+  <img src="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/System%20Architecture%20Diagram.png" width="90%" style="border: 1px solid #E2E8F0; border-radius: 6px;">
+  <br><br>
+  🌐 <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/System%20Architecture%20Diagram.png" target="_blank">System Architecture</a></b>
+  <p><i>Figure 4.1: Component Infrastructure, API Layer, and ML Analytics Pipelines</i></p>
+</div>
 ---
 
 ## 4.2 Presentation Tier
@@ -1026,6 +1038,35 @@ The complete Data Dictionary covering all 45 entities, every table column, data 
 
 > This is **Deliverable 2** as defined in the project assignment. It is maintained as a separate document and linked here by reference.
 >
+
+## 6.5 Data Dictionary
+
+The global database layer is broken into 5 isolated structural schemas. Review the structural design, raw DBML code, and field indexes below:
+
+### 1. Asset Master Domain Schema
+*   **Visual Data Model:** [Open High-Resolution Interactive ERD ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/ERD%20%E2%80%94%20Asset%20Master%20Domain.png)
+*   **Schema Definition Script:** [Raw DBML Code Script ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/schemas/ERD1.DBML)
+*   **Column Index Definitions:** [Comprehensive Field Data Dictionary ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/data-dictionaries/data_dictionary-ASSETMASTER.txt)
+
+### 2. Driver amd People Domain Schema
+*   **Visual Data Model:** [Open High-Resolution Interactive ERD ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/ERD%20%E2%80%94%20Driver%20%26%20People%20Domain.png)
+*   **Schema Definition Script:** [Raw DBML Code Script ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/schemas/ERD2.DBML)
+*   **Column Index Definitions:** [Comprehensive Field Data Dictionary ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/data-dictionaries/data_dictionary-DRIVERPEOPLE.txt)
+
+### 3. Operations Domain Schema
+*   **Visual Data Model:** [Open High-Resolution Interactive ERD ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/ERD%20%E2%80%94%20Operations%20Domain.png)
+*   **Schema Definition Script:** [Raw DBML Code Script ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/schemas/ERD3.DBML)
+*   **Column Index Definitions:** [Comprehensive Field Data Dictionary ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/data-dictionaries/data_dictionary-OPERATIONSDOMAIN.txt)
+
+### 4. Maintenance & Transfer Domain Schema
+*   **Visual Data Model:** [Open High-Resolution Interactive ERD ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/ERD%20%E2%80%94%20Maintenance%20%26%20Transfer%20Domain.png)
+*   **Schema Definition Script:** [Raw DBML Code Script ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/schemas/ERD4.DBML)
+*   **Column Index Definitions:** [Comprehensive Field Data Dictionary ↗](https://github.com/YOUR_USERNAME/equipment-management-system/blob/main/docs/data-dictionaries/analytics-dictionary.md)
+
+### 5. Analytics & Audit Domain Schema
+*   **Visual Data Model:** [Open High-Resolution Interactive ERD ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/ERD%20%E2%80%94%20Analytics%20%26%20Audit%20Domain.png)
+*   **Schema Definition Script:** [Raw DBML Code Script ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/schemas/ERD5.DBML)
+*   **Column Index Definitions:** [Comprehensive Field Data Dictionary ↗](https://github.com/YOUR_USERNAME/equipment-management-system/blob/main/docs/data-dictionaries/security-dictionary.md)
 
 <div style="page-break-after: always;"></div>
 
