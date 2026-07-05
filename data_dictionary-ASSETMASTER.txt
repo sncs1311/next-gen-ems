@@ -1,0 +1,478 @@
+================================================================================
+EMS — DATA DICTIONARY
+DOMAIN GROUP 1: ASSET MASTER DOMAIN
+Version 1.0 | Phase 1 Deliverable | IEEE 830 Compliant
+================================================================================
+
+TABLES IN THIS DOMAIN:
+  1.  AssetCategory
+  2.  AssetSubType
+  3.  Asset
+  4.  EngineSpecification
+  5.  GulfRegistration
+  6.  Vendor
+  7.  PurchaseRecord
+  8.  InsurancePolicy
+  9.  AssetInsuranceCoverage
+  10. TyreRecord
+  11. BatteryRecord
+  12. EquipmentCertification
+  13. DocumentAttachment
+
+================================================================================
+TABLE 1: AssetCategory
+PURPOSE: Lookup table defining the five primary asset classification groups.
+================================================================================
+
+  COLUMN           | DATA TYPE    | CONSTRAINTS                  | DESCRIPTION                              | EXAMPLE
+  -----------------|--------------|------------------------------|------------------------------------------|------------------------------------
+  id               | uuid         | PK, NOT NULL                 | Unique record identifier                 | a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  category_code    | varchar(20)  | UNIQUE, NOT NULL             | Short internal code for category         | EV
+  category_name    | varchar(100) | NOT NULL                     | Full descriptive category name           | Executive & Light Commercial Vehicles
+  description      | text         | NULL                         | Optional longer description              | Vehicles used for management and supervision
+  is_active        | boolean      | NOT NULL, DEFAULT true       | Soft disable flag — false hides category | true
+  created_at       | timestamptz  | NOT NULL, DEFAULT now()      | Record creation timestamp                | 2024-01-01 08:00:00+03
+  updated_at       | timestamptz  | NOT NULL, DEFAULT now()      | Last modification timestamp              | 2024-01-01 08:00:00+03
+
+VALID CATEGORY CODES:
+  EV   = Executive & Light Commercial Vehicles
+  PT   = Personnel Transport
+  HE   = Heavy Earthmoving & Construction Equipment
+  LH   = Lifting & Heavy Shifting Equipment
+  SA   = Static Auxiliary & Power Generation Assets
+
+================================================================================
+TABLE 2: AssetSubType
+PURPOSE: Granular classification within a category. Each asset is assigned one
+         sub-type which implicitly provides its category membership.
+================================================================================
+
+  COLUMN                     | DATA TYPE    | CONSTRAINTS                  | DESCRIPTION                                      | EXAMPLE
+  ---------------------------|--------------|------------------------------|--------------------------------------------------|-------------------
+  id                         | uuid         | PK, NOT NULL                 | Unique record identifier                         | b2c3d4e5-...
+  category_id                | uuid         | FK -> AssetCategory.id       | Parent category reference                        | a1b2c3d4-...
+                             |              | NOT NULL                     |                                                  |
+  sub_type_code              | varchar(20)  | UNIQUE, NOT NULL             | Short internal code                              | CEXC
+  sub_type_name              | varchar(100) | NOT NULL                     | Full sub-type name                               | Crawler Excavator
+  requires_certification     | boolean      | NOT NULL, DEFAULT false      | True = lifting cert mandatory before Active      | true
+  requires_gulf_registration | boolean      | NOT NULL, DEFAULT false      | True = road plate and Mulkiya mandatory          | false
+  is_active                  | boolean      | NOT NULL, DEFAULT true       | Soft disable flag                                | true
+  created_at                 | timestamptz  | NOT NULL, DEFAULT now()      | Record creation timestamp                        | 2024-01-01 08:00:00+03
+  updated_at                 | timestamptz  | NOT NULL, DEFAULT now()      | Last modification timestamp                      | 2024-01-01 08:00:00+03
+
+SAMPLE SUB-TYPE CODES:
+  SUV   = SUV / Station Wagon (EV)
+  PCKU  = Pickup Truck (EV)
+  SDAN  = Sedan (EV)
+  PBUS  = Personnel Bus (PT)
+  MBUS  = Mini Bus (PT)
+  VAN   = Van (PT)
+  CEXC  = Crawler Excavator (HE)
+  DUMP  = Dump Truck / Tipper (HE)
+  BKHL  = Backhoe Loader (HE)
+  WLDR  = Wheel Loader (HE)
+  BULL  = Bulldozer (HE)
+  COMP  = Soil Compactor (HE)
+  CCRN  = Crawler Crane (LH)
+  RTCR  = Rough Terrain Crane (LH)
+  ATCR  = All Terrain Crane (LH)
+  THND  = Telehandler (LH)
+  FKLT  = Forklift (LH)
+  BLFT  = Boom Lift (LH)
+  TPLF  = Telescopic Work Platform (LH)
+  GNST  = Generator Set (SA)
+  AIRC  = Air Compressor (SA)
+  WELD  = Welding Machine (SA)
+  LTWR  = Light Tower (SA)
+  PUMP  = Water Pump (SA)
+
+================================================================================
+TABLE 3: Asset
+PURPOSE: Central master record for every piece of equipment, vehicle, or
+         machinery. Every other operational entity references this table.
+================================================================================
+
+  COLUMN              | DATA TYPE      | CONSTRAINTS               | DESCRIPTION                                              | EXAMPLE
+  --------------------|----------------|---------------------------|----------------------------------------------------------|-------------------
+  id                  | uuid           | PK, NOT NULL              | Unique record identifier                                 | c3d4e5f6-...
+  asset_number        | varchar(20)    | UNIQUE, NOT NULL          | Company-assigned number. Format: EQ-YYYY-NNNN            | EQ-2024-0001
+  sub_type_id         | uuid           | FK -> AssetSubType.id     | Asset sub-type — implicitly provides category            | b2c3d4e5-...
+                      |                | NOT NULL                  |                                                          |
+  make                | varchar(100)   | NOT NULL                  | Manufacturer or brand name                               | Toyota
+  model               | varchar(100)   | NOT NULL                  | Specific model name                                      | Land Cruiser
+  year_of_manufacture | smallint       | NOT NULL                  | 4-digit year asset was manufactured                      | 2022
+  ownership_type      | varchar(20)    | NOT NULL                  | Owned / Leased / Hired / Subcontractor                   | Owned
+  current_status      | varchar(30)    | NOT NULL, DEFAULT Idle    | See valid statuses below                                 | Active
+  current_project_id  | uuid           | FK -> Project.id, NULL    | Current project — updated by AssetSiteAssignment trigger | d4e5f6g7-...
+  current_operator_id | uuid           | FK -> Driver.id, NULL     | Current driver — updated by AssetOperatorAssignment      | e5f6g7h8-...
+  cumulative_hours    | decimal(10,2)  | NOT NULL, DEFAULT 0       | Total engine hours accumulated (equipment)               | 4253.50
+  cumulative_km       | decimal(10,2)  | NOT NULL, DEFAULT 0       | Total kilometers accumulated (vehicles)                  | 28440.00
+  color               | varchar(50)    | NULL                      | Vehicle or equipment color                               | Pearl White
+  notes               | text           | NULL                      | Any additional remarks                                   | Site inspection vehicle
+  is_archived         | boolean        | NOT NULL, DEFAULT false   | Soft delete — true means Written Off or archived         | false
+  created_by          | uuid           | FK -> Employee.id         | User who registered this asset                           | f6g7h8i9-...
+                      |                | NOT NULL                  |                                                          |
+  created_at          | timestamptz    | NOT NULL, DEFAULT now()   | Record creation timestamp                                | 2024-01-15 09:00:00+03
+  updated_at          | timestamptz    | NOT NULL, DEFAULT now()   | Last modification timestamp                              | 2024-06-01 14:30:00+03
+
+VALID STATUSES:
+  Active              = Deployed and operational
+  Under Maintenance   = In workshop — job card open
+  Idle                = Available but not assigned to a project
+  In Transit          = Moving between sites — transfer dispatched
+  Decommissioned      = Retired from service — awaiting write-off
+  Written Off         = Formally written off — record archived
+
+BUSINESS RULES:
+  - Asset number auto-generated: EQ-[YYYY]-[0001 to 9999]
+  - Cannot transition to In Transit while status is Under Maintenance
+  - Cannot have fuel log or utilization log created while Written Off
+  - Only Fleet Manager and System Admin may set Decommissioned or Written Off
+  - Soft delete only — is_archived = true, record never physically deleted
+
+================================================================================
+TABLE 4: EngineSpecification
+PURPOSE: All mechanical and engine-specific technical data for an asset.
+         Separated from Asset because engine data is dense, rarely queried
+         in list views, and an engine replacement creates a new record while
+         the Asset record remains the same, preserving engine history.
+================================================================================
+
+  COLUMN                              | DATA TYPE      | CONSTRAINTS                | DESCRIPTION                                      | EXAMPLE
+  ------------------------------------|----------------|----------------------------|--------------------------------------------------|-------------------
+  id                                  | uuid           | PK, NOT NULL               | Unique record identifier                         | d4e5f6g7-...
+  asset_id                            | uuid           | UNIQUE, FK -> Asset.id     | Parent asset — one-to-one relationship           | c3d4e5f6-...
+                                      |                | NOT NULL                   |                                                  |
+  engine_make                         | varchar(100)   | NOT NULL                   | Engine manufacturer brand                        | Toyota
+  engine_model                        | varchar(100)   | NOT NULL                   | Engine model designation                         | 1GR-FE
+  engine_serial_number                | varchar(100)   | UNIQUE, NOT NULL           | Unique serial from engine nameplate              | 1GR-FE-2022-441892
+  chassis_serial_number               | varchar(100)   | UNIQUE, NOT NULL           | VIN or equipment frame serial number             | JTMHV05J504012345
+  fuel_type                           | varchar(20)    | NOT NULL                   | Diesel / Petrol / Dual-Fuel / Electric           | Petrol
+  displacement_liters                 | decimal(4,1)   | NULL                       | Engine displacement in liters                    | 4.0
+  engine_configuration                | varchar(50)    | NULL                       | V6 / Inline-4 / V8 / Flat-4 etc.               | V6
+  rated_horsepower                    | smallint       | NULL                       | Engine rated output in HP                        | 270
+  rated_torque_nm                     | smallint       | NULL                       | Engine rated torque in Newton-meters             | 380
+  emission_standard                   | varchar(30)    | NULL                       | Euro 3 / Euro 5 / Tier 4 Final / Stage V         | Euro 5
+  transmission_type                   | varchar(30)    | NULL                       | Manual / Automatic / CVT / Torque Converter      | Automatic
+  drive_configuration                 | varchar(30)    | NULL                       | 2WD / 4WD / AWD / Tracked / Wheeled              | 4WD
+  cooling_system                      | varchar(20)    | NULL                       | Air-Cooled / Water-Cooled / Oil-Cooled           | Water-Cooled
+  fuel_tank_capacity_liters           | decimal(6,1)   | NOT NULL                   | Tank capacity — used to validate fuel entries    | 87.0
+  service_interval_oil_hours          | smallint       | NULL                       | OEM engine oil change interval in hours          | 250
+  service_interval_oil_filter_hours   | smallint       | NULL                       | OEM oil filter change interval in hours          | 250
+  service_interval_air_filter_hours   | smallint       | NULL                       | OEM air filter change interval in hours          | 500
+  service_interval_fuel_filter_hours  | smallint       | NULL                       | OEM fuel filter change interval in hours         | 500
+  service_interval_hydraulic_oil_hours| smallint       | NULL                       | OEM hydraulic oil interval — null if no hydraulics| 2000
+  service_interval_greasing_hours     | smallint       | NULL                       | OEM greasing interval in hours                   | 50
+  service_interval_full_inspection_hours| smallint     | NULL                       | OEM full inspection interval in hours            | 1000
+  service_interval_km                 | integer        | NULL                       | Kilometer-based service interval for vehicles    | 10000
+  is_current                          | boolean        | NOT NULL, DEFAULT true     | False when engine has been replaced              | true
+  replaced_at                         | timestamptz    | NULL                       | Timestamp when this engine was replaced          | null
+  created_at                          | timestamptz    | NOT NULL, DEFAULT now()    | Record creation timestamp                        | 2024-01-15 09:00:00+03
+  updated_at                          | timestamptz    | NOT NULL, DEFAULT now()    | Last modification timestamp                      | 2024-01-15 09:00:00+03
+
+BUSINESS RULES:
+  - engine_serial_number must be globally unique — enforced by UNIQUE constraint
+  - chassis_serial_number must be globally unique — enforced by UNIQUE constraint
+  - fuel_tank_capacity_liters is mandatory — used by fuel log validation
+  - When engine is replaced: set is_current = false on old record, create new record
+  - At least one service interval field must be populated for PM schedule generation
+
+================================================================================
+TABLE 5: GulfRegistration
+PURPOSE: Gulf-region Department of Transportation regulatory data.
+         Separated from Asset because not all assets are road-registered.
+         Heavy equipment (excavators, cranes, generators) have no plate number.
+================================================================================
+
+  COLUMN                        | DATA TYPE     | CONSTRAINTS                | DESCRIPTION                                       | EXAMPLE
+  ------------------------------|---------------|----------------------------|---------------------------------------------------|-------------------
+  id                            | uuid          | PK, NOT NULL               | Unique record identifier                          | e5f6g7h8-...
+  asset_id                      | uuid          | UNIQUE, FK -> Asset.id     | Parent asset — one-to-one relationship            | c3d4e5f6-...
+                                |               | NOT NULL                   |                                                   |
+  country_of_registration       | varchar(10)   | NOT NULL                   | QAT / UAE / SAU / OMN / KWT / BHR                | QAT
+  plate_number                  | varchar(30)   | UNIQUE, NOT NULL           | Official plate issued by DOT                      | QAT-21443-A
+  registration_cert_number      | varchar(100)  | NOT NULL                   | Mulkiya or Istimara certificate number            | MQ-2022-88341
+  registration_expiry_date      | date          | NOT NULL                   | Registration certificate expiry date              | 2024-08-22
+  traffic_file_number           | varchar(100)  | NULL                       | Traffic department internal file reference        | TF-QAT-441-2022
+  last_inspection_date          | date          | NULL                       | Date of last official roadworthiness inspection   | 2024-01-15
+  next_inspection_due_date      | date          | NULL                       | Projected next inspection date                    | 2025-01-15
+  roadworthy_certificate_number | varchar(100)  | NULL                       | Roadworthiness certificate reference              | RW-QAT-2024-00441
+  export_cert_number            | varchar(100)  | NULL                       | For cross-border equipment movement clearance     | EC-QAT-2024-00112
+  is_current                    | boolean       | NOT NULL, DEFAULT true     | False when registration record is superseded      | true
+  created_at                    | timestamptz   | NOT NULL, DEFAULT now()    | Record creation timestamp                         | 2024-01-15 09:00:00+03
+  updated_at                    | timestamptz   | NOT NULL, DEFAULT now()    | Last modification timestamp                       | 2024-01-15 09:00:00+03
+
+BUSINESS RULES:
+  - Only required for AssetSubTypes where requires_gulf_registration = true
+  - System must alert at 90, 60, and 30 days before registration_expiry_date
+  - Transfer dispatch is blocked if registration_expiry_date has passed
+  - plate_number format validated against country_of_registration format rules
+  - When renewed: create new record with is_current = true, old record is_current = false
+
+================================================================================
+TABLE 6: Vendor
+PURPOSE: Master list of all external suppliers, service providers, insurers,
+         fuel suppliers, repair workshops, and inspection bodies.
+         Referenced by PurchaseRecord, InsurancePolicy, MaintenanceJobCard,
+         SiteFuelDelivery, and EquipmentCertification.
+================================================================================
+
+  COLUMN               | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                        | EXAMPLE
+  ---------------------|---------------|---------------------------|----------------------------------------------------|-------------------
+  id                   | uuid          | PK, NOT NULL              | Unique record identifier                           | f6g7h8i9-...
+  vendor_code          | varchar(20)   | UNIQUE, NOT NULL          | Internal vendor reference code                     | VND-2024-0001
+  vendor_name          | varchar(200)  | NOT NULL                  | Full company or vendor name                        | Qatar Petroleum Services LLC
+  vendor_type          | varchar(50)   | NOT NULL                  | See valid types below                              | Supplier
+  contact_person       | varchar(100)  | NULL                      | Primary point of contact name                      | Ahmed Al-Khalifa
+  contact_phone        | varchar(30)   | NULL                      | Contact phone number including country code        | +974 4444 1234
+  contact_email        | varchar(150)  | NULL                      | Contact email address                              | ahmed@qps.qa
+  address              | text          | NULL                      | Full mailing or physical address                   | Al Sadd, Doha, Qatar
+  country              | varchar(100)  | NULL                      | Country of vendor operation                        | Qatar
+  trade_license_number | varchar(100)  | NULL                      | Official trade license or commercial registration  | CR-QAT-2018-44123
+  is_active            | boolean       | NOT NULL, DEFAULT true    | Soft disable — false removes from dropdowns        | true
+  performance_score    | decimal(3,1)  | NULL                      | Computed vendor rating 0.0 to 10.0                 | 8.4
+  created_at           | timestamptz   | NOT NULL, DEFAULT now()   | Record creation timestamp                          | 2024-01-01 08:00:00+03
+  updated_at           | timestamptz   | NOT NULL, DEFAULT now()   | Last modification timestamp                        | 2024-01-01 08:00:00+03
+
+VALID VENDOR TYPES:
+  Supplier        = Asset purchase supplier
+  Insurance       = Insurance provider or broker
+  FuelSupplier    = Bulk fuel delivery company
+  RepairWorkshop  = External repair contractor
+  InspectionBody  = Third-party certification authority (Bureau Veritas etc.)
+  Transporter     = Low-bed or trailer transport company
+
+================================================================================
+TABLE 7: PurchaseRecord
+PURPOSE: Financial acquisition data for owned assets.
+         Separated from Asset for two reasons:
+         (1) Finance-only visibility for sensitive cost fields
+         (2) Some assets are hired or subcontracted with no company purchase
+================================================================================
+
+  COLUMN                | DATA TYPE      | CONSTRAINTS                | DESCRIPTION                                         | EXAMPLE
+  ----------------------|----------------|----------------------------|-----------------------------------------------------|-------------------
+  id                    | uuid           | PK, NOT NULL               | Unique record identifier                            | g7h8i9j0-...
+  asset_id              | uuid           | UNIQUE, FK -> Asset.id     | Parent asset — one-to-one relationship              | c3d4e5f6-...
+                        |                | NOT NULL                   |                                                     |
+  vendor_id             | uuid           | FK -> Vendor.id, NOT NULL  | Vendor who supplied the asset                       | f6g7h8i9-...
+  purchase_order_number | varchar(100)   | NOT NULL                   | Company purchase order reference                    | PO-2022-00441
+  purchase_date         | date           | NOT NULL                   | Date asset was purchased                            | 2022-03-15
+  purchase_price_local  | decimal(15,2)  | NOT NULL                   | Purchase price in local currency                    | 320000.00
+  currency              | varchar(5)     | NOT NULL                   | ISO currency code                                   | QAR
+  purchase_price_usd    | decimal(15,2)  | NULL                       | USD equivalent at time of purchase                  | 87912.00
+  depreciation_method   | varchar(30)    | NOT NULL                   | Straight-Line / Declining-Balance                   | Straight-Line
+  useful_life_years     | smallint       | NOT NULL                   | Asset expected useful life in years                 | 10
+  residual_value        | decimal(15,2)  | NOT NULL                   | Expected value at end of useful life                | 32000.00
+  capitalization_date   | date           | NOT NULL                   | Date asset was commissioned for operational use     | 2022-04-01
+  current_book_value    | decimal(15,2)  | NOT NULL                   | Auto-calculated by nightly batch job                | 256000.00
+  funding_source        | varchar(30)    | NOT NULL                   | Own-Capital / Bank-Finance / Lease                  | Own-Capital
+  lessor_name           | varchar(200)   | NULL                       | Required if funding_source = Lease                  | null
+  lease_monthly_payment | decimal(12,2)  | NULL                       | Monthly lease payment if applicable                 | null
+  lease_end_date        | date           | NULL                       | Lease contract end date if applicable               | null
+  invoice_reference     | varchar(100)   | NULL                       | Supplier invoice number                             | INV-QPS-2022-8841
+  created_at            | timestamptz    | NOT NULL, DEFAULT now()    | Record creation timestamp                           | 2022-03-16 10:00:00+03
+  updated_at            | timestamptz    | NOT NULL, DEFAULT now()    | Last modification timestamp                         | 2024-01-01 06:00:00+03
+
+BUSINESS RULES:
+  - current_book_value auto-recalculated nightly: (purchase_price - residual) / useful_life_years * years_elapsed + residual
+  - If funding_source = Lease: lessor_name, lease_monthly_payment, and lease_end_date are mandatory
+  - Visible only to Fleet Manager, Finance, and Executive roles via RBAC
+  - Feeds into ReplacementAlert engine via cumulative repair cost vs book value ratio
+
+================================================================================
+TABLE 8: InsurancePolicy
+PURPOSE: Insurance coverage details. Separated from Asset because:
+         (1) One fleet policy can cover multiple assets
+         (2) Annual renewals create a history of policies per asset
+================================================================================
+
+  COLUMN                | DATA TYPE      | CONSTRAINTS                | DESCRIPTION                                      | EXAMPLE
+  ----------------------|----------------|----------------------------|--------------------------------------------------|-------------------
+  id                    | uuid           | PK, NOT NULL               | Unique record identifier                         | h8i9j0k1-...
+  vendor_id             | uuid           | FK -> Vendor.id, NOT NULL  | Insurance provider or broker vendor              | f6g7h8i9-...
+  policy_number         | varchar(100)   | UNIQUE, NOT NULL           | Official policy reference number                 | POL-2024-QAT-00441
+  policy_type           | varchar(50)    | NOT NULL                   | Third-Party / Comprehensive / Equipment-All-Risk | Comprehensive
+  coverage_start_date   | date           | NOT NULL                   | Date coverage begins                             | 2024-01-01
+  coverage_end_date     | date           | NOT NULL                   | Date coverage expires                            | 2024-12-31
+  premium_amount        | decimal(12,2)  | NOT NULL                   | Annual premium amount                            | 4800.00
+  premium_currency      | varchar(5)     | NOT NULL                   | ISO currency code for premium                    | QAR
+  insured_value         | decimal(15,2)  | NOT NULL                   | Declared insured value of covered assets         | 320000.00
+  broker_name           | varchar(200)   | NULL                       | Insurance broker name if used                    | Gulf Insurance Brokers
+  broker_contact        | varchar(100)   | NULL                       | Broker contact number or email                   | +974 4455 6677
+  is_active             | boolean        | NOT NULL, DEFAULT true     | Whether policy is currently active               | true
+  created_at            | timestamptz    | NOT NULL, DEFAULT now()    | Record creation timestamp                        | 2024-01-01 08:00:00+03
+  updated_at            | timestamptz    | NOT NULL, DEFAULT now()    | Last modification timestamp                      | 2024-01-01 08:00:00+03
+
+BUSINESS RULES:
+  - coverage_end_date must be after coverage_start_date — enforced by CHECK constraint
+  - System must alert at 90, 60, and 30 days before coverage_end_date
+  - Transfer dispatch blocked if active insurance policy for asset has expired
+  - One policy can cover multiple assets — resolved via AssetInsuranceCoverage junction
+
+================================================================================
+TABLE 9: AssetInsuranceCoverage
+PURPOSE: Junction table resolving the many-to-many relationship between
+         Assets and InsurancePolicies. Stores the date range for which
+         a specific policy covers a specific asset.
+================================================================================
+
+  COLUMN         | DATA TYPE    | CONSTRAINTS                       | DESCRIPTION                                    | EXAMPLE
+  ---------------|--------------|-----------------------------------|------------------------------------------------|-------------------
+  id             | uuid         | PK, NOT NULL                      | Unique record identifier                       | i9j0k1l2-...
+  asset_id       | uuid         | FK -> Asset.id, NOT NULL          | Asset being covered                            | c3d4e5f6-...
+  policy_id      | uuid         | FK -> InsurancePolicy.id          | Policy providing coverage                      | h8i9j0k1-...
+                 |              | NOT NULL                          |                                                |
+  effective_from | date         | NOT NULL                          | Date this coverage became effective            | 2024-01-01
+  effective_to   | date         | NULL                              | Date coverage ended — null if currently active | null
+  created_at     | timestamptz  | NOT NULL, DEFAULT now()           | Record creation timestamp                      | 2024-01-01 08:00:00+03
+
+UNIQUE CONSTRAINT: (asset_id, policy_id, effective_from) must be unique
+BUSINESS RULES:
+  - To check if asset is insured: query WHERE asset_id = X AND effective_to IS NULL
+  - When policy is renewed: set effective_to on old record, create new record
+
+================================================================================
+TABLE 10: TyreRecord
+PURPOSE: Tracks individual tyres fitted to wheeled assets across all positions.
+         Each tyre has its own record from installation through removal.
+         Only applicable to wheeled assets — tracked excavators have no tyres.
+================================================================================
+
+  COLUMN                     | DATA TYPE      | CONSTRAINTS               | DESCRIPTION                                   | EXAMPLE
+  ---------------------------|----------------|---------------------------|-----------------------------------------------|-------------------
+  id                         | uuid           | PK, NOT NULL              | Unique record identifier                      | j0k1l2m3-...
+  asset_id                   | uuid           | FK -> Asset.id, NOT NULL  | Asset this tyre is or was fitted to           | c3d4e5f6-...
+  tyre_serial_number         | varchar(100)   | NOT NULL                  | Tyre manufacturer serial number               | BRG-2024-TR-44192
+  tyre_brand                 | varchar(100)   | NULL                      | Tyre manufacturer brand                       | Bridgestone
+  tyre_size                  | varchar(50)    | NULL                      | Tyre size designation                         | 265/70R17
+  wheel_position             | varchar(30)    | NOT NULL                  | FL / FR / RL / RR / Spare / P1 etc.          | FL
+  installation_date          | date           | NOT NULL                  | Date tyre was fitted                          | 2024-01-15
+  installation_meter_km      | decimal(10,2)  | NULL                      | Odometer at time of installation              | 18000.00
+  installation_hour_meter    | decimal(10,2)  | NULL                      | Hour meter at installation for equipment      | null
+  tread_depth_at_install_mm  | decimal(4,1)   | NULL                      | Tread depth in mm when new                    | 8.5
+  current_status             | varchar(20)    | NOT NULL, DEFAULT Fitted  | Fitted / Removed / Scrapped                   | Fitted
+  removal_date               | date           | NULL                      | Date tyre was removed                         | null
+  removal_meter_km           | decimal(10,2)  | NULL                      | Odometer reading at removal                   | null
+  tread_depth_at_removal_mm  | decimal(4,1)   | NULL                      | Tread depth in mm at removal                  | null
+  removal_reason             | varchar(100)   | NULL                      | Worn / Damaged / Rotated / Puncture           | null
+  created_at                 | timestamptz    | NOT NULL, DEFAULT now()   | Record creation timestamp                     | 2024-01-15 09:00:00+03
+  updated_at                 | timestamptz    | NOT NULL, DEFAULT now()   | Last modification timestamp                   | 2024-01-15 09:00:00+03
+
+WHEEL POSITION CODES:
+  FL = Front Left    FR = Front Right    RL = Rear Left    RR = Rear Right
+  RRL = Rear Right Left (dual)           RRR = Rear Right Right (dual)
+  P1 through P8 = Generic positions for equipment with many wheels
+  Spare = Spare tyre stored on vehicle
+
+================================================================================
+TABLE 11: BatteryRecord
+PURPOSE: Tracks batteries fitted to assets. Battery failures are frequent in
+         Gulf heat extremes. History enables prediction of battery life per
+         asset class and supports replacement planning.
+================================================================================
+
+  COLUMN            | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                     | EXAMPLE
+  ------------------|---------------|---------------------------|-------------------------------------------------|-------------------
+  id                | uuid          | PK, NOT NULL              | Unique record identifier                        | k1l2m3n4-...
+  asset_id          | uuid          | FK -> Asset.id, NOT NULL  | Asset this battery belongs to                   | c3d4e5f6-...
+  battery_serial    | varchar(100)  | NULL                      | Battery serial number if available              | BAT-VRLA-2024-8819
+  battery_brand     | varchar(100)  | NULL                      | Battery manufacturer brand                      | Exide
+  battery_spec      | varchar(100)  | NULL                      | Voltage and capacity specification              | 12V 100Ah
+  installation_date | date          | NOT NULL                  | Date battery was installed                      | 2024-01-15
+  removal_date      | date          | NULL                      | Date battery was removed                        | null
+  removal_reason    | varchar(200)  | NULL                      | Failed / End-of-Life / Precautionary            | null
+  is_current        | boolean       | NOT NULL, DEFAULT true    | Whether this is the currently fitted battery    | true
+  created_at        | timestamptz   | NOT NULL, DEFAULT now()   | Record creation timestamp                       | 2024-01-15 09:00:00+03
+  updated_at        | timestamptz   | NOT NULL, DEFAULT now()   | Last modification timestamp                     | 2024-01-15 09:00:00+03
+
+================================================================================
+TABLE 12: EquipmentCertification
+PURPOSE: Mandatory third-party load test certificates for lifting equipment.
+         Under GCC safety regulations equivalent to LOLER, cranes, forklifts,
+         and boom lifts must be certified annually. An asset in the Lifting
+         category CANNOT be set to Active status without a valid certificate.
+================================================================================
+
+  COLUMN                 | DATA TYPE     | CONSTRAINTS                | DESCRIPTION                                          | EXAMPLE
+  -----------------------|---------------|----------------------------|------------------------------------------------------|-------------------
+  id                     | uuid          | PK, NOT NULL               | Unique record identifier                             | l2m3n4o5-...
+  asset_id               | uuid          | FK -> Asset.id, NOT NULL   | Asset being certified                                | c3d4e5f6-...
+  vendor_id              | uuid          | FK -> Vendor.id, NOT NULL  | Inspection body that conducted and issued the cert   | f6g7h8i9-...
+  certificate_number     | varchar(100)  | UNIQUE, NOT NULL           | Official certificate reference number                | BV-QAT-2024-CRANE-00441
+  certificate_type       | varchar(100)  | NOT NULL                   | Load Test / LOLER / Annual Inspection                | Load Test
+  test_date              | date          | NOT NULL                   | Date the load test was conducted                     | 2024-01-10
+  expiry_date            | date          | NOT NULL                   | Certificate expiry date                              | 2025-01-10
+  safe_working_load      | varchar(50)   | NOT NULL                   | Maximum certified safe working load                  | 300 Ton
+  inspector_name         | varchar(200)  | NULL                       | Name of the certifying inspector                     | James Thornton
+  certifying_body        | varchar(200)  | NOT NULL                   | Name of the certification authority                  | Bureau Veritas
+  certificate_doc_url    | text          | NULL                       | URL or path to uploaded certificate PDF              | /docs/certs/BV-QAT-2024-00441.pdf
+  is_current             | boolean       | NOT NULL, DEFAULT true     | False when superseded by newer certificate           | true
+  created_at             | timestamptz   | NOT NULL, DEFAULT now()    | Record creation timestamp                            | 2024-01-10 11:00:00+03
+  updated_at             | timestamptz   | NOT NULL, DEFAULT now()    | Last modification timestamp                          | 2024-01-10 11:00:00+03
+
+BUSINESS RULES:
+  - At least one valid (is_current = true, expiry_date > today) record must exist
+    before an asset with requires_certification = true can be set to Active status
+  - This is a HARD BLOCK — no override permitted by any role
+  - System must alert at 60, 30, and 7 days before expiry_date
+  - When renewed: set is_current = false on old record, create new record
+
+================================================================================
+TABLE 13: DocumentAttachment
+PURPOSE: Generic document store allowing any entity to have multiple digital
+         documents attached. Uses polymorphic relationship via entity_type
+         and entity_id fields. Documents stored in cloud object storage (S3).
+         Only metadata stored in the database.
+================================================================================
+
+  COLUMN         | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                              | EXAMPLE
+  ---------------|---------------|---------------------------|----------------------------------------------------------|-------------------
+  id             | uuid          | PK, NOT NULL              | Unique record identifier                                 | m3n4o5p6-...
+  entity_type    | varchar(50)   | NOT NULL                  | Which table this document belongs to                     | Asset
+  entity_id      | uuid          | NOT NULL                  | Primary key of the parent record (polymorphic)           | c3d4e5f6-...
+  document_type  | varchar(100)  | NOT NULL                  | See valid document types below                           | Registration
+  file_name      | varchar(255)  | NOT NULL                  | Original uploaded file name                              | mulkiya_EQ-2024-0001.pdf
+  file_path_url  | text          | NOT NULL                  | S3 signed URL or server file path                        | https://s3.aws.../mulkiya_EQ-2024-0001.pdf
+  file_size_bytes| integer       | NULL                      | File size in bytes for display                           | 204800
+  mime_type      | varchar(100)  | NULL                      | MIME type for correct rendering                          | application/pdf
+  uploaded_by    | uuid          | FK -> Employee.id         | User who performed the upload                            | f6g7h8i9-...
+                 |               | NOT NULL                  |                                                          |
+  uploaded_at    | timestamptz   | NOT NULL, DEFAULT now()   | Upload timestamp                                         | 2024-01-15 09:30:00+03
+  is_archived    | boolean       | NOT NULL, DEFAULT false   | Soft delete flag                                         | false
+
+VALID ENTITY TYPES:
+  Asset / Driver / IncidentReport / TransferRequest / MaintenanceJobCard / Project
+
+VALID DOCUMENT TYPES:
+  Registration / Insurance / Invoice / Manual / Photo / Certification / PoliceReport
+  IncidentPhoto / InspectionReport / Warranty / Other
+
+SUPPORTED FILE FORMATS: PDF / JPG / PNG / DOCX
+MAXIMUM FILE SIZE: 10 MB per attachment
+STORAGE: Files stored in AWS S3 or compatible object storage — never in database
+
+================================================================================
+RELATIONSHIPS IN DOMAIN GROUP 1: ASSET MASTER
+================================================================================
+
+  REF | FROM TABLE              | TO TABLE                 | CARDINALITY | FK COLUMN                        | MANDATORY | NOTES
+  ----|-------------------------|--------------------------|-------------|----------------------------------|-----------|----------------------------------------------
+  R01 | AssetCategory           | AssetSubType             | 1 : M       | AssetSubType.category_id         | Yes       | Category contains many sub-types
+  R02 | AssetSubType            | Asset                    | 1 : M       | Asset.sub_type_id                | Yes       | Sub-type classifies many assets
+  R03 | Asset                   | EngineSpecification      | 1 : 1       | EngineSpecification.asset_id     | Yes       | Every asset has one active engine spec
+  R04 | Asset                   | GulfRegistration         | 1 : 0..1    | GulfRegistration.asset_id        | No        | Only road vehicles have registration
+  R05 | Asset                   | PurchaseRecord           | 1 : 0..1    | PurchaseRecord.asset_id          | No        | Hired assets may have no purchase record
+  R06 | Asset                   | AssetInsuranceCoverage   | 1 : M       | AssetInsuranceCoverage.asset_id  | No        | Asset covered by many policies over time
+  R07 | InsurancePolicy         | AssetInsuranceCoverage   | 1 : M       | AssetInsuranceCoverage.policy_id | No        | One fleet policy covers many assets
+  R08 | Vendor                  | PurchaseRecord           | 1 : M       | PurchaseRecord.vendor_id         | Yes       | One vendor supplies many assets
+  R09 | Vendor                  | InsurancePolicy          | 1 : M       | InsurancePolicy.vendor_id        | Yes       | One insurer provides many policies
+  R10 | Vendor                  | EquipmentCertification   | 1 : M       | EquipmentCertification.vendor_id | Yes       | One inspection body issues many certs
+  R11 | Asset                   | TyreRecord               | 1 : M       | TyreRecord.asset_id              | No        | Wheeled assets only — many tyres over life
+  R12 | Asset                   | BatteryRecord            | 1 : M       | BatteryRecord.asset_id           | No        | Many battery replacements over asset life
+  R13 | Asset                   | EquipmentCertification   | 1 : M       | EquipmentCertification.asset_id  | No        | Lifting assets only — annual renewal history
+  R14 | DocumentAttachment      | All Entities             | Polymorphic | entity_type + entity_id          | No        | Any entity can have many documents attached
+
+================================================================================
+END OF DATA DICTIONARY — DOMAIN GROUP 1: ASSET MASTER
+================================================================================

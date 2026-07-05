@@ -1,0 +1,248 @@
+// ============================================================
+// EMS — ERD DOMAIN GROUP 1: ASSET MASTER DOMAIN
+// Entities: Asset, AssetCategory, AssetSubType,
+//           EngineSpecification, GulfRegistration,
+//           PurchaseRecord, InsurancePolicy,
+//           AssetInsuranceCoverage, Vendor,
+//           TyreRecord, BatteryRecord, EquipmentCertification,
+//           DocumentAttachment
+// ============================================================
+
+Table AssetCategory {
+  id                  uuid        [pk, note: "UUID v4"]
+  category_code       varchar(20) [unique, not null, note: "e.g. EV, PT, HE, LH, SA"]
+  category_name       varchar(100)[not null, note: "e.g. Executive & Light Commercial Vehicles"]
+  description         text
+  is_active           boolean     [not null, default: true]
+  created_at          timestamptz [not null, default: `now()`]
+  updated_at          timestamptz [not null, default: `now()`]
+}
+
+Table AssetSubType {
+  id                  uuid        [pk]
+  category_id         uuid        [not null, ref: > AssetCategory.id]
+  sub_type_code       varchar(20) [unique, not null, note: "e.g. CEXC, DUMP, CCRN, GENSET"]
+  sub_type_name       varchar(100)[not null, note: "e.g. Crawler Excavator, Dump Truck"]
+  requires_certification  boolean [not null, default: false, note: "True for lifting equipment"]
+  requires_gulf_registration boolean [not null, default: false, note: "True for road vehicles"]
+  is_active           boolean     [not null, default: true]
+  created_at          timestamptz [not null, default: `now()`]
+  updated_at          timestamptz [not null, default: `now()`]
+}
+
+Table Asset {
+  id                      uuid        [pk]
+  asset_number            varchar(20) [unique, not null, note: "Format: EQ-YYYY-NNNN"]
+  sub_type_id             uuid        [not null, ref: > AssetSubType.id]
+  make                    varchar(100)[not null, note: "e.g. Caterpillar, Toyota, Liebherr"]
+  model                   varchar(100)[not null, note: "e.g. 320, Land Cruiser, LR 1300"]
+  year_of_manufacture     smallint    [not null]
+  ownership_type          varchar(20) [not null, note: "Owned / Leased / Hired / Subcontractor"]
+  current_status          varchar(30) [not null, default: "Idle", note: "Active / Under Maintenance / Idle / In Transit / Decommissioned / Written Off"]
+  current_project_id      uuid        [note: "FK to Project — set by AssetSiteAssignment trigger"]
+  current_operator_id     uuid        [note: "FK to Driver — set by AssetOperatorAssignment"]
+  cumulative_hours        decimal(10,2)[not null, default: 0, note: "Hour meter for equipment"]
+  cumulative_km           decimal(10,2)[not null, default: 0, note: "Odometer for vehicles"]
+  color                   varchar(50)
+  notes                   text
+  is_archived             boolean     [not null, default: false]
+  created_by              uuid        [not null, note: "FK to Employee"]
+  created_at              timestamptz [not null, default: `now()`]
+  updated_at              timestamptz [not null, default: `now()`]
+}
+
+Table EngineSpecification {
+  id                      uuid        [pk]
+  asset_id                uuid        [unique, not null, ref: - Asset.id, note: "One-to-one"]
+  engine_make             varchar(100)[not null, note: "e.g. Cummins, Caterpillar, Perkins"]
+  engine_model            varchar(100)[not null, note: "e.g. QSB6.7, C7.1, 1104D"]
+  engine_serial_number    varchar(100)[unique, not null]
+  chassis_serial_number   varchar(100)[unique, not null, note: "VIN equivalent"]
+  fuel_type               varchar(20) [not null, note: "Diesel / Petrol / Dual-Fuel / Electric"]
+  displacement_liters     decimal(4,1)[note: "e.g. 6.7, 4.0, 3.5"]
+  engine_configuration    varchar(50) [note: "e.g. Inline-6, V6, V8, Flat-4"]
+  rated_horsepower        smallint    [note: "in HP"]
+  rated_torque_nm         smallint    [note: "in Nm"]
+  emission_standard       varchar(30) [note: "e.g. Euro 3, Euro 5, Tier 4 Final"]
+  transmission_type       varchar(30) [note: "Manual / Automatic / CVT / Torque Converter"]
+  drive_configuration     varchar(30) [note: "2WD / 4WD / AWD / Tracked / Wheeled"]
+  cooling_system          varchar(20) [note: "Air / Water / Oil-Cooled"]
+  fuel_tank_capacity_liters decimal(6,1)[not null, note: "Used for fuel entry validation"]
+  service_interval_oil_hours      smallint [note: "OEM engine oil change interval in hours"]
+  service_interval_oil_filter_hours smallint
+  service_interval_air_filter_hours smallint
+  service_interval_fuel_filter_hours smallint
+  service_interval_hydraulic_oil_hours smallint [note: "Null for non-hydraulic assets"]
+  service_interval_greasing_hours smallint
+  service_interval_full_inspection_hours smallint
+  service_interval_km     integer     [note: "For road vehicles — km-based interval"]
+  is_current              boolean     [not null, default: true, note: "False when engine is replaced"]
+  replaced_at             timestamptz [note: "Set when engine is replaced"]
+  created_at              timestamptz [not null, default: `now()`]
+  updated_at              timestamptz [not null, default: `now()`]
+}
+
+Table GulfRegistration {
+  id                          uuid        [pk]
+  asset_id                    uuid        [unique, not null, ref: - Asset.id]
+  country_of_registration     varchar(10) [not null, note: "QAT / UAE / SAU / OMN / KWT / BHR"]
+  plate_number                varchar(30) [unique, not null, note: "Official DOT plate number"]
+  registration_cert_number    varchar(100)[not null, note: "Mulkiya / Istimara number"]
+  registration_expiry_date    date        [not null]
+  traffic_file_number         varchar(100)
+  last_inspection_date        date
+  next_inspection_due_date    date
+  roadworthy_certificate_number varchar(100)
+  export_cert_number          varchar(100)[note: "For cross-border movements"]
+  is_current                  boolean     [not null, default: true]
+  created_at                  timestamptz [not null, default: `now()`]
+  updated_at                  timestamptz [not null, default: `now()`]
+}
+
+Table Vendor {
+  id                  uuid        [pk]
+  vendor_code         varchar(20) [unique, not null]
+  vendor_name         varchar(200)[not null]
+  vendor_type         varchar(50) [not null, note: "Supplier / Insurance / FuelSupplier / RepairWorkshop / InspectionBody / Transporter"]
+  contact_person      varchar(100)
+  contact_phone       varchar(30)
+  contact_email       varchar(150)
+  address             text
+  country             varchar(100)
+  trade_license_number varchar(100)
+  is_active           boolean     [not null, default: true]
+  performance_score   decimal(3,1)[note: "Computed vendor score 0-10"]
+  created_at          timestamptz [not null, default: `now()`]
+  updated_at          timestamptz [not null, default: `now()`]
+}
+
+Table PurchaseRecord {
+  id                      uuid        [pk]
+  asset_id                uuid        [unique, not null, ref: - Asset.id]
+  vendor_id               uuid        [not null, ref: > Vendor.id]
+  purchase_order_number   varchar(100)[not null]
+  purchase_date           date        [not null]
+  purchase_price_local    decimal(15,2)[not null]
+  currency                varchar(5)  [not null, note: "QAR / AED / SAR / USD etc."]
+  purchase_price_usd      decimal(15,2)
+  depreciation_method     varchar(30) [not null, note: "Straight-Line / Declining-Balance"]
+  useful_life_years       smallint    [not null]
+  residual_value          decimal(15,2)[not null]
+  capitalization_date     date        [not null]
+  current_book_value      decimal(15,2)[not null, note: "Recomputed by nightly batch"]
+  funding_source          varchar(30) [not null, note: "Own-Capital / Bank-Finance / Lease"]
+  lessor_name             varchar(200)[note: "Required if funding_source = Lease"]
+  lease_monthly_payment   decimal(12,2)[note: "Required if funding_source = Lease"]
+  lease_end_date          date        [note: "Required if funding_source = Lease"]
+  invoice_reference       varchar(100)
+  created_at              timestamptz [not null, default: `now()`]
+  updated_at              timestamptz [not null, default: `now()`]
+}
+
+Table InsurancePolicy {
+  id                  uuid        [pk]
+  vendor_id           uuid        [not null, ref: > Vendor.id, note: "Insurance provider vendor"]
+  policy_number       varchar(100)[unique, not null]
+  policy_type         varchar(50) [not null, note: "Third-Party / Comprehensive / Equipment-All-Risk"]
+  coverage_start_date date        [not null]
+  coverage_end_date   date        [not null]
+  premium_amount      decimal(12,2)[not null]
+  premium_currency    varchar(5)  [not null]
+  insured_value       decimal(15,2)[not null]
+  broker_name         varchar(200)
+  broker_contact      varchar(100)
+  is_active           boolean     [not null, default: true]
+  created_at          timestamptz [not null, default: `now()`]
+  updated_at          timestamptz [not null, default: `now()`]
+}
+
+Table AssetInsuranceCoverage {
+  id                  uuid        [pk]
+  asset_id            uuid        [not null, ref: > Asset.id]
+  policy_id           uuid        [not null, ref: > InsurancePolicy.id]
+  effective_from      date        [not null]
+  effective_to        date
+  created_at          timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, policy_id, effective_from) [unique]
+  }
+}
+
+Table TyreRecord {
+  id                      uuid        [pk]
+  asset_id                uuid        [not null, ref: > Asset.id]
+  tyre_serial_number      varchar(100)[not null]
+  tyre_brand              varchar(100)
+  tyre_size               varchar(50)
+  wheel_position          varchar(30) [not null, note: "FL / FR / RL / RR / Spare / etc."]
+  installation_date       date        [not null]
+  installation_meter_km   decimal(10,2)
+  installation_hour_meter decimal(10,2)
+  tread_depth_at_install_mm decimal(4,1)
+  current_status          varchar(20) [not null, default: "Fitted", note: "Fitted / Removed / Scrapped"]
+  removal_date            date
+  removal_meter_km        decimal(10,2)
+  tread_depth_at_removal_mm decimal(4,1)
+  removal_reason          varchar(100)[note: "Worn / Damaged / Rotated / Puncture"]
+  created_at              timestamptz [not null, default: `now()`]
+  updated_at              timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, current_status)
+  }
+}
+
+Table BatteryRecord {
+  id                  uuid        [pk]
+  asset_id            uuid        [not null, ref: > Asset.id]
+  battery_serial      varchar(100)
+  battery_brand       varchar(100)
+  battery_spec        varchar(100)[note: "e.g. 12V 100Ah, 24V 200Ah"]
+  installation_date   date        [not null]
+  removal_date        date
+  removal_reason      varchar(200)[note: "Failed / End-of-Life / Precautionary"]
+  is_current          boolean     [not null, default: true]
+  created_at          timestamptz [not null, default: `now()`]
+  updated_at          timestamptz [not null, default: `now()`]
+}
+
+Table EquipmentCertification {
+  id                      uuid        [pk]
+  asset_id                uuid        [not null, ref: > Asset.id]
+  vendor_id               uuid        [not null, ref: > Vendor.id, note: "Inspection body"]
+  certificate_number      varchar(100)[unique, not null]
+  certificate_type        varchar(100)[not null, note: "Load Test / LOLER / Annual Inspection"]
+  test_date               date        [not null]
+  expiry_date             date        [not null]
+  safe_working_load       varchar(50) [not null, note: "e.g. 300 Ton, 5 Ton"]
+  inspector_name          varchar(200)
+  certifying_body         varchar(200)[not null]
+  certificate_doc_url     text        [note: "Link to uploaded certificate PDF"]
+  is_current              boolean     [not null, default: true]
+  created_at              timestamptz [not null, default: `now()`]
+  updated_at              timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, is_current)
+    (expiry_date)
+  }
+}
+
+Table DocumentAttachment {
+  id                  uuid        [pk]
+  entity_type         varchar(50) [not null, note: "Asset / Incident / TransferRequest / JobCard / Driver"]
+  entity_id           uuid        [not null, note: "ID of the parent record"]
+  document_type       varchar(100)[not null, note: "Registration / Insurance / Invoice / Manual / Photo / Certification"]
+  file_name           varchar(255)[not null]
+  file_path_url       text        [not null, note: "S3 URL or server path"]
+  file_size_bytes     integer
+  mime_type           varchar(100)
+  uploaded_by         uuid        [not null, note: "FK to Employee"]
+  uploaded_at         timestamptz [not null, default: `now()`]
+  is_archived         boolean     [not null, default: false]
+
+  indexes {
+    (entity_type, entity_id)
+  }
+}

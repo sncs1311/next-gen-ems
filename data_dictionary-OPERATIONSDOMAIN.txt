@@ -1,0 +1,358 @@
+================================================================================
+EMS — DATA DICTIONARY
+DOMAIN GROUP 3: OPERATIONS DOMAIN
+Version 1.0 | Phase 1 Deliverable | IEEE 830 Compliant
+================================================================================
+
+TABLES IN THIS DOMAIN:
+  1.  Project
+  2.  WarehouseYardLocation
+  3.  ProjectSiteEngineerAssignment
+  4.  AssetSiteAssignment
+  5.  AssetOperatorAssignment
+  6.  SiteFuelTank
+  7.  SiteFuelDelivery
+  8.  FuelLog
+  9.  FuelAnomaly
+  10. UtilizationLog
+  11. SparePart
+
+================================================================================
+TABLE 1: Project
+PURPOSE: Represents a construction project or active site where equipment is
+         deployed. Every operational event (fuel, utilization, incidents,
+         breakdowns, transfers) is anchored to a Project or WarehouseYardLocation.
+================================================================================
+
+  COLUMN                    | DATA TYPE      | CONSTRAINTS                   | DESCRIPTION                                        | EXAMPLE
+  --------------------------|----------------|-------------------------------|----------------------------------------------------|-----------------------
+  id                        | uuid           | PK, NOT NULL                  | Unique record identifier                           | u1v2w3x4-...
+  project_code              | varchar(30)    | UNIQUE, NOT NULL              | Auto-generated. Format: PRJ-[CC]-YYYY-NNN          | PRJ-QAT-2024-001
+  project_name              | varchar(300)   | NOT NULL                      | Full official project name                         | Ras Laffan LNG Expansion Phase 3
+  client_name               | varchar(200)   | NOT NULL                      | Client organization name                           | QatarEnergy
+  sector                    | varchar(50)    | NOT NULL                      | Oil-Gas / Refinery / Infrastructure / Marine / Power| Oil-Gas
+  city                      | varchar(100)   | NOT NULL                      | City or industrial area of site                    | Ras Laffan
+  country                   | varchar(10)    | NOT NULL                      | QAT / UAE / SAU / OMN / KWT / BHR                 | QAT
+  site_gps_lat              | decimal(10,7)  | NULL                          | GPS latitude of site office or main gate           | 26.1551234
+  site_gps_lng              | decimal(10,7)  | NULL                          | GPS longitude of site office or main gate          | 51.5441234
+  start_date                | date           | NOT NULL                      | Project commencement date                          | 2024-01-15
+  planned_completion_date   | date           | NOT NULL                      | Planned project end date                           | 2025-12-31
+  actual_completion_date    | date           | NULL                          | Actual completion — null until project ends        | null
+  project_manager_id        | uuid           | FK -> Employee.id, NOT NULL   | Assigned project manager employee                  | o5p6q7r8-...
+  project_status            | varchar(30)    | NOT NULL, DEFAULT Mobilization | See valid statuses below                           | Active
+  is_archived               | boolean        | NOT NULL, DEFAULT false        | Soft delete flag                                   | false
+  created_at                | timestamptz    | NOT NULL, DEFAULT now()        | Record creation timestamp                          | 2024-01-10 08:00:00+03
+  updated_at                | timestamptz    | NOT NULL, DEFAULT now()        | Last modification timestamp                        | 2024-01-15 09:00:00+03
+
+VALID PROJECT STATUSES:
+  Mobilization  = Equipment being moved to site, not yet fully operational
+  Active        = Project underway, full equipment deployment
+  On-Hold       = Work temporarily suspended
+  Demobilization = Equipment being returned to yard or transferred out
+  Completed     = Project closed — all assets must be reassigned before closing
+
+BUSINESS RULES:
+  - project_code auto-generated: PRJ-[CC]-[YYYY]-[001 to 999] where CC is country code
+  - Status cannot be set to Completed if any active AssetSiteAssignment records exist
+  - Fleet Manager confirmation required when setting Completed with remaining assets
+  - Project Manager must be an Employee with role PM or FLEET_MGR
+
+================================================================================
+TABLE 2: WarehouseYardLocation
+PURPOSE: Physical locations that are not active construction projects.
+         Assets that are not deployed to a project are located here.
+         Includes the main equipment yard, central workshop, and staging areas.
+================================================================================
+
+  COLUMN            | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                        | EXAMPLE
+  ------------------|---------------|---------------------------|----------------------------------------------------|-------------------
+  id                | uuid          | PK, NOT NULL              | Unique record identifier                           | v2w3x4y5-...
+  location_code     | varchar(20)   | UNIQUE, NOT NULL          | Internal location code                             | YARD-HQ-01
+  location_name     | varchar(200)  | NOT NULL                  | Full descriptive name                              | Main Equipment Yard Doha HQ
+  location_type     | varchar(30)   | NOT NULL                  | Yard / Workshop / Staging-Area                     | Yard
+  city              | varchar(100)  | NULL                      | City of this location                              | Doha
+  country           | varchar(10)   | NULL                      | Country code                                       | QAT
+  gps_lat           | decimal(10,7) | NULL                      | GPS latitude                                       | 25.2854123
+  gps_lng           | decimal(10,7) | NULL                      | GPS longitude                                      | 51.5310123
+  is_active         | boolean       | NOT NULL, DEFAULT true    | Active flag                                        | true
+  created_at        | timestamptz   | NOT NULL, DEFAULT now()   | Record creation timestamp                          | 2024-01-01 08:00:00+03
+  updated_at        | timestamptz   | NOT NULL, DEFAULT now()   | Last modification timestamp                        | 2024-01-01 08:00:00+03
+
+================================================================================
+TABLE 3: ProjectSiteEngineerAssignment
+PURPOSE: Junction table for the many-to-many relationship between Projects and
+         Site Engineers. A project has many engineers; one engineer works on
+         many projects over their career. Includes date range for each assignment.
+================================================================================
+
+  COLUMN        | DATA TYPE    | CONSTRAINTS                | DESCRIPTION                                         | EXAMPLE
+  --------------|--------------|----------------------------|-----------------------------------------------------|-------------------
+  id            | uuid         | PK, NOT NULL               | Unique record identifier                            | w3x4y5z6-...
+  project_id    | uuid         | FK -> Project.id, NOT NULL | Project being assigned to                           | u1v2w3x4-...
+  employee_id   | uuid         | FK -> Employee.id          | Site engineer employee being assigned               | o5p6q7r8-...
+                |              | NOT NULL                   |                                                     |
+  assigned_from | date         | NOT NULL                   | Date assignment started                             | 2024-01-15
+  assigned_to   | date         | NULL                       | Date assignment ended — null if currently active    | null
+  created_at    | timestamptz  | NOT NULL, DEFAULT now()    | Record creation timestamp                           | 2024-01-15 09:00:00+03
+
+UNIQUE CONSTRAINT: (project_id, employee_id, assigned_from)
+BUSINESS RULE: employee_id must reference an Employee with role SITE_ENG or PM
+
+================================================================================
+TABLE 4: AssetSiteAssignment
+PURPOSE: Records the history of which asset is at which location at any point
+         in time. This is the chain-of-custody for asset location.
+         One asset has exactly one current assignment (assigned_to IS NULL)
+         and many historical assignments (assigned_to IS NOT NULL).
+
+CHECK CONSTRAINT: Either project_id OR yard_location_id must be populated — not both, not neither.
+================================================================================
+
+  COLUMN              | DATA TYPE    | CONSTRAINTS                           | DESCRIPTION                                          | EXAMPLE
+  --------------------|--------------|---------------------------------------|------------------------------------------------------|-------------------
+  id                  | uuid         | PK, NOT NULL                          | Unique record identifier                             | x4y5z6a7-...
+  asset_id            | uuid         | FK -> Asset.id, NOT NULL              | Asset being assigned                                 | c3d4e5f6-...
+  project_id          | uuid         | FK -> Project.id, NULL                | Destination project — null if assigned to yard       | u1v2w3x4-...
+  yard_location_id    | uuid         | FK -> WarehouseYardLocation.id, NULL  | Destination yard — null if assigned to project       | null
+  assigned_from       | timestamptz  | NOT NULL                              | Timestamp when assignment started                    | 2024-01-15 09:00:00+03
+  assigned_to         | timestamptz  | NULL                                  | Timestamp when assignment ended — null if current    | null
+  assigned_by         | uuid         | FK -> Employee.id, NOT NULL           | Fleet Manager who authorized the assignment          | o5p6q7r8-...
+  transfer_request_id | uuid         | NULL                                  | FK to TransferRequest that triggered this assignment | null
+  notes               | text         | NULL                                  | Optional notes about this assignment                 | Mobilized for LNG Phase 3
+
+INDEX: (asset_id, assigned_to) — fast lookup: WHERE asset_id = X AND assigned_to IS NULL
+INDEX: (project_id, assigned_to) — fast lookup of all current assets at a project
+
+================================================================================
+TABLE 5: AssetOperatorAssignment
+PURPOSE: Records which driver or operator is assigned to which asset for which
+         shift on which date. Enables attribution of fuel consumption, breakdowns,
+         and utilization to specific operators. Critical for driver behavior scoring.
+================================================================================
+
+  COLUMN          | DATA TYPE    | CONSTRAINTS                | DESCRIPTION                                        | EXAMPLE
+  ----------------|--------------|----------------------------|----------------------------------------------------|-------------------
+  id              | uuid         | PK, NOT NULL               | Unique record identifier                           | y5z6a7b8-...
+  asset_id        | uuid         | FK -> Asset.id, NOT NULL   | Asset being operated in this shift                 | c3d4e5f6-...
+  driver_id       | uuid         | FK -> Driver.id, NOT NULL  | Driver assigned for this shift                     | p6q7r8s9-...
+  project_id      | uuid         | FK -> Project.id, NULL     | Project site of this shift assignment              | u1v2w3x4-...
+  shift           | varchar(10)  | NOT NULL                   | AM / PM / Night / Full-Day                         | AM
+  assignment_date | date         | NOT NULL                   | Date of this shift                                 | 2024-07-04
+  start_time      | time         | NULL                       | Shift start time                                   | 06:00
+  end_time        | time         | NULL                       | Shift end time                                     | 14:00
+  assigned_by     | uuid         | FK -> Employee.id, NOT NULL| Employee who made this assignment                  | o5p6q7r8-...
+  notes           | text         | NULL                       | Optional notes                                     | Regular daily assignment
+  created_at      | timestamptz  | NOT NULL, DEFAULT now()    | Record creation timestamp                          | 2024-07-04 05:30:00+03
+
+UNIQUE CONSTRAINT: (asset_id, assignment_date, shift) — one driver per asset per shift per day
+INDEX: (driver_id, assignment_date) — lookup all assets a driver operated on a given day
+
+================================================================================
+TABLE 6: SiteFuelTank
+PURPOSE: Bulk fuel storage tanks at each project site. Tracks current balance.
+         Balance is auto-updated on every SiteFuelDelivery (credit) and
+         every FuelLog referencing this tank (debit).
+         Reconciliation report compares balance vs. actual dip measurements.
+================================================================================
+
+  COLUMN                  | DATA TYPE      | CONSTRAINTS                | DESCRIPTION                                          | EXAMPLE
+  ------------------------|----------------|----------------------------|------------------------------------------------------|-------------------
+  id                      | uuid           | PK, NOT NULL               | Unique record identifier                             | z6a7b8c9-...
+  project_id              | uuid           | FK -> Project.id, NOT NULL | Project site this tank belongs to                    | u1v2w3x4-...
+  tank_code               | varchar(30)    | UNIQUE, NOT NULL           | Internal tank identifier code                        | TANK-PRJ001-D1
+  fuel_type               | varchar(20)    | NOT NULL                   | Diesel / Petrol                                      | Diesel
+  capacity_liters         | decimal(10,2)  | NOT NULL                   | Total physical tank capacity in liters               | 5000.00
+  current_balance_liters  | decimal(10,2)  | NOT NULL, DEFAULT 0        | Current calculated balance — updated on every txn    | 2840.00
+  location_description    | text           | NULL                       | Physical description of tank location on site        | Near site entrance gate B
+  is_active               | boolean        | NOT NULL, DEFAULT true     | Active flag                                          | true
+  created_at              | timestamptz    | NOT NULL, DEFAULT now()    | Record creation timestamp                            | 2024-01-15 09:00:00+03
+  updated_at              | timestamptz    | NOT NULL, DEFAULT now()    | Last modification timestamp (updated on each txn)    | 2024-07-04 08:42:00+03
+
+BUSINESS RULE: current_balance_liters must never go below 0 — enforced by application layer
+
+================================================================================
+TABLE 7: SiteFuelDelivery
+PURPOSE: Each bulk fuel delivery into a site fuel tank from a fuel supplier.
+         Credits the tank balance. Referenced in fuel reconciliation reports
+         to calculate unaccounted fuel (delivered vs. dispensed to equipment).
+================================================================================
+
+  COLUMN               | DATA TYPE      | CONSTRAINTS                | DESCRIPTION                                      | EXAMPLE
+  ---------------------|----------------|----------------------------|--------------------------------------------------|-------------------
+  id                   | uuid           | PK, NOT NULL               | Unique record identifier                         | a7b8c9d0-...
+  tank_id              | uuid           | FK -> SiteFuelTank.id      | Tank receiving the delivery                      | z6a7b8c9-...
+                       |                | NOT NULL                   |                                                  |
+  vendor_id            | uuid           | FK -> Vendor.id, NOT NULL  | Fuel supplier vendor                             | f6g7h8i9-...
+  delivery_date        | date           | NOT NULL                   | Date of fuel delivery                            | 2024-07-01
+  quantity_liters      | decimal(10,2)  | NOT NULL                   | Volume delivered in liters                       | 3000.00
+  unit_price           | decimal(8,4)   | NOT NULL                   | Price per liter                                  | 2.3500
+  total_cost           | decimal(12,2)  | NOT NULL                   | Total cost of this delivery                      | 7050.00
+  currency             | varchar(5)     | NOT NULL                   | ISO currency code                                | QAR
+  delivery_note_number | varchar(100)   | NULL                       | Supplier delivery note reference                 | DN-QGAS-2024-08819
+  po_reference         | varchar(100)   | NULL                       | Purchase order reference for this delivery       | PO-2024-FUEL-00441
+  received_by          | uuid           | FK -> Employee.id          | Site Engineer who physically received delivery   | o5p6q7r8-...
+                       |                | NOT NULL                   |                                                  |
+  notes                | text           | NULL                       | Additional notes                                 | Delivered via tanker truck
+  created_at           | timestamptz    | NOT NULL, DEFAULT now()    | Record creation timestamp                        | 2024-07-01 10:00:00+03
+
+INDEX: (tank_id, delivery_date DESC)
+
+================================================================================
+TABLE 8: FuelLog
+PURPOSE: Every fuel dispensing event for every asset. The highest-volume
+         transactional table in the system. Each row is one fueling event.
+         Corrections are new rows with is_correction = true — original is never edited.
+================================================================================
+
+  COLUMN                | DATA TYPE      | CONSTRAINTS                | DESCRIPTION                                          | EXAMPLE
+  ----------------------|----------------|----------------------------|------------------------------------------------------|-------------------
+  id                    | uuid           | PK, NOT NULL               | Unique record identifier                             | b8c9d0e1-...
+  asset_id              | uuid           | FK -> Asset.id, NOT NULL   | Asset that was fueled                                | c3d4e5f6-...
+  driver_id             | uuid           | FK -> Driver.id, NOT NULL  | Driver on duty at time of fueling                    | p6q7r8s9-...
+  project_id            | uuid           | FK -> Project.id, NOT NULL | Project site where fueling occurred                  | u1v2w3x4-...
+  tank_id               | uuid           | FK -> SiteFuelTank.id, NULL| Company tank used — null if external station used    | z6a7b8c9-...
+  logged_at             | timestamptz    | NOT NULL                   | Actual date and time of the fueling event            | 2024-07-04 08:42:00+03
+  fuel_type             | varchar(20)    | NOT NULL                   | Diesel / Petrol — must match asset engine fuel type  | Petrol
+  quantity_liters       | decimal(8,2)   | NOT NULL                   | Volume dispensed in liters                           | 58.00
+  meter_reading_km      | decimal(10,2)  | NULL                       | Odometer reading in km — vehicles only               | 28440.00
+  meter_reading_hours   | decimal(10,2)  | NULL                       | Hour meter reading — equipment only                  | null
+  fuel_source           | varchar(30)    | NOT NULL                   | Company-Tank / External-Station / Bowser             | Company-Tank
+  voucher_reference     | varchar(100)   | NULL                       | Fuel voucher or purchase order reference             | FV-2024-PRJ001-00881
+  unit_price            | decimal(8,4)   | NULL                       | Price per liter at time of fueling                   | 2.3500
+  total_cost            | decimal(12,2)  | NULL                       | Auto-calculated: quantity_liters * unit_price        | 136.30
+  currency              | varchar(5)     | NULL                       | ISO currency code                                    | QAR
+  calculated_efficiency | decimal(8,4)   | NULL                       | km/L for vehicles or L/hr for equipment. Auto-calc.  | 12.8000
+  rolling_avg_efficiency| decimal(8,4)   | NULL                       | 30-day rolling average at time of entry              | 12.2000
+  is_correction         | boolean        | NOT NULL, DEFAULT false    | True if this entry corrects a previous entry         | false
+  corrects_log_id       | uuid           | FK -> FuelLog.id, NULL     | Self-ref to original entry being corrected           | null
+  entered_by            | uuid           | FK -> Employee.id, NOT NULL| User who entered this log                            | o5p6q7r8-...
+  created_at            | timestamptz    | NOT NULL, DEFAULT now()    | Record creation timestamp                            | 2024-07-04 08:42:00+03
+
+BUSINESS RULES:
+  - quantity_liters must be greater than zero
+  - quantity_liters must not exceed EngineSpecification.fuel_tank_capacity_liters — HARD BLOCK
+  - fuel_type must match EngineSpecification.fuel_type for the asset — HARD BLOCK
+  - meter_reading must be >= previous meter reading for same asset — HARD BLOCK
+  - calculated_efficiency auto-computed: (current_meter - previous_meter) / quantity_liters
+  - Corrections are new rows — original row is never modified (append-only principle)
+
+INDEX: (asset_id, logged_at DESC)
+INDEX: (project_id, logged_at DESC)
+INDEX: (driver_id, logged_at DESC)
+
+================================================================================
+TABLE 9: FuelAnomaly
+PURPOSE: System-generated records when a fuel log triggers an anomaly detection.
+         Kept separate from FuelLog to preserve log integrity.
+         Fleet Manager reviews and resolves anomalies from the anomaly panel.
+================================================================================
+
+  COLUMN            | DATA TYPE     | CONSTRAINTS                    | DESCRIPTION                                          | EXAMPLE
+  ------------------|---------------|--------------------------------|------------------------------------------------------|-------------------
+  id                | uuid          | PK, NOT NULL                   | Unique record identifier                             | c9d0e1f2-...
+  fuel_log_id       | uuid          | UNIQUE, FK -> FuelLog.id       | The specific fuel log that triggered this anomaly    | b8c9d0e1-...
+                    |               | NOT NULL                       |                                                      |
+  asset_id          | uuid          | FK -> Asset.id, NOT NULL       | Asset involved — stored for query performance        | c3d4e5f6-...
+  anomaly_type      | varchar(50)   | NOT NULL                       | Overconsumption / Underconsumption / Tank-Exceeded   | Overconsumption
+  expected_min      | decimal(8,4)  | NOT NULL                       | Lower bound of expected efficiency range             | 9.7600
+  expected_max      | decimal(8,4)  | NOT NULL                       | Upper bound of expected efficiency range             | 14.6400
+  actual_value      | decimal(8,4)  | NOT NULL                       | Actual efficiency recorded in the flagged fuel log   | 9.1000
+  deviation_percent | decimal(6,2)  | NOT NULL                       | Percentage deviation from rolling average            | 22.80
+  alert_generated   | boolean       | NOT NULL, DEFAULT false        | Whether a SystemAlert was raised for this anomaly    | true
+  reviewed_by       | uuid          | FK -> Employee.id, NULL        | Fleet Manager who reviewed — null until reviewed     | null
+  reviewed_at       | timestamptz   | NULL                           | Timestamp when Fleet Manager reviewed this anomaly   | null
+  resolution        | varchar(200)  | NULL                           | Explanation entered by Fleet Manager on resolution   | null
+  created_at        | timestamptz   | NOT NULL, DEFAULT now()        | Timestamp of anomaly detection                       | 2024-07-04 08:43:00+03
+
+ANOMALY DETECTION LOGIC:
+  Flag when: abs(calculated_efficiency - rolling_avg_efficiency) / rolling_avg_efficiency > threshold
+  Default threshold: 20% (configurable by System Admin)
+  Also flag when: quantity_liters > fuel_tank_capacity_liters (Tank-Exceeded type)
+
+================================================================================
+TABLE 10: UtilizationLog
+PURPOSE: Daily shift-level record of actual working hours for each asset.
+         Enables calculation of Fleet Utilization Rate:
+           (productive_hours / available_hours) * 100
+         Distinct from FuelLog — an asset can be available and idle (zero fuel,
+         zero utilization) or fueled but idle between tasks.
+================================================================================
+
+  COLUMN              | DATA TYPE     | CONSTRAINTS                | DESCRIPTION                                         | EXAMPLE
+  --------------------|---------------|----------------------------|-----------------------------------------------------|-------------------
+  id                  | uuid          | PK, NOT NULL               | Unique record identifier                            | d0e1f2g3-...
+  asset_id            | uuid          | FK -> Asset.id, NOT NULL   | Asset being tracked in this shift                   | c3d4e5f6-...
+  driver_id           | uuid          | FK -> Driver.id, NOT NULL  | Operator for this shift                             | p6q7r8s9-...
+  project_id          | uuid          | FK -> Project.id, NOT NULL | Project site for this shift                         | u1v2w3x4-...
+  log_date            | date          | NOT NULL                   | Date of this shift                                  | 2024-07-04
+  shift               | varchar(10)   | NOT NULL                   | AM / PM / Night / Full-Day                          | AM
+  available_hours     | decimal(4,2)  | NOT NULL                   | Total hours asset was available in this shift       | 10.00
+  productive_hours    | decimal(4,2)  | NOT NULL                   | Hours asset was actively performing work            | 8.50
+  idle_hours          | decimal(4,2)  | NOT NULL                   | Available but not actively working                  | 1.50
+  downtime_hours      | decimal(4,2)  | NOT NULL, DEFAULT 0        | Hours under breakdown or scheduled maintenance      | 0.00
+  utilization_rate    | decimal(5,2)  | NOT NULL                   | (productive_hours / available_hours) * 100          | 85.00
+  opening_hour_meter  | decimal(10,2) | NULL                       | Hour meter reading at start of shift                | 4240.00
+  closing_hour_meter  | decimal(10,2) | NULL                       | Hour meter reading at end of shift                  | 4250.00
+  operator_remarks    | text          | NULL                       | Operator observations for the shift                 | No issues observed
+  entered_by          | uuid          | FK -> Employee.id, NOT NULL| User who entered this shift log                     | o5p6q7r8-...
+  created_at          | timestamptz   | NOT NULL, DEFAULT now()    | Record creation timestamp                           | 2024-07-04 14:30:00+03
+
+UNIQUE CONSTRAINT: (asset_id, log_date, shift) — one log per asset per shift per day
+BUSINESS RULE: available_hours = productive_hours + idle_hours + downtime_hours
+INDEX: (asset_id, log_date DESC, shift)
+INDEX: (project_id, log_date DESC)
+INDEX: (driver_id, log_date DESC)
+
+================================================================================
+TABLE 11: SparePart
+PURPOSE: Master parts catalog. Each part referenced by JobCardPart records when
+         parts are consumed in maintenance. Not a full inventory management system
+         but provides structure for cost tracking and compatibility mapping.
+================================================================================
+
+  COLUMN              | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                             | EXAMPLE
+  --------------------|---------------|---------------------------|---------------------------------------------------------|-------------------
+  id                  | uuid          | PK, NOT NULL              | Unique record identifier                                | e1f2g3h4-...
+  part_number         | varchar(100)  | UNIQUE, NOT NULL          | OEM or internal part number                             | CAT-1R-0749
+  part_description    | varchar(300)  | NOT NULL                  | Full descriptive name of the part                       | Caterpillar Engine Oil Filter Element
+  part_category       | varchar(100)  | NULL                      | Engine / Hydraulics / Electrical / Filters / Tyres etc. | Filters
+  compatible_sub_types| text          | NULL                      | Comma-separated asset sub-type codes this part fits     | CEXC,BKHL,WLDR
+  unit_of_measure     | varchar(20)   | NOT NULL                  | Each / Set / Liter / Meter / Kg                         | Each
+  oem_part_number     | varchar(100)  | NULL                      | OEM part number if different from internal number       | 1R-0749
+  reorder_level       | decimal(8,2)  | NULL                      | Stock quantity that triggers a reorder alert            | 5.00
+  current_stock       | decimal(8,2)  | NULL, DEFAULT 0           | Current quantity in stock (optional tracking)           | 12.00
+  unit_cost_estimate  | decimal(10,2) | NULL                      | Estimated unit cost for budgeting purposes              | 45.00
+  is_active           | boolean       | NOT NULL, DEFAULT true    | Active flag — false hides from job card dropdowns       | true
+  created_at          | timestamptz   | NOT NULL, DEFAULT now()   | Record creation timestamp                               | 2024-01-01 08:00:00+03
+  updated_at          | timestamptz   | NOT NULL, DEFAULT now()   | Last modification timestamp                             | 2024-01-01 08:00:00+03
+
+================================================================================
+RELATIONSHIPS IN DOMAIN GROUP 3: OPERATIONS
+================================================================================
+
+  REF | FROM TABLE                    | TO TABLE                       | CARDINALITY | FK COLUMN                                  | MANDATORY | NOTES
+  ----|-------------------------------|--------------------------------|-------------|--------------------------------------------|-----------|------------------------------------------
+  R01 | Employee                      | Project                        | 1 : M       | Project.project_manager_id                 | Yes       | One PM manages many projects
+  R02 | Project                       | ProjectSiteEngineerAssignment  | 1 : M       | ProjectSiteEngineerAssignment.project_id   | No        | Many engineers on one project
+  R03 | Employee                      | ProjectSiteEngineerAssignment  | 1 : M       | ProjectSiteEngineerAssignment.employee_id  | No        | One engineer assigned to many projects
+  R04 | Project                       | AssetSiteAssignment            | 1 : M       | AssetSiteAssignment.project_id             | No        | Many assets at one project over time
+  R05 | WarehouseYardLocation         | AssetSiteAssignment            | 1 : M       | AssetSiteAssignment.yard_location_id       | No        | Many assets stored at one yard (XOR R04)
+  R06 | Asset                         | AssetSiteAssignment            | 1 : M       | AssetSiteAssignment.asset_id               | Yes       | One asset has many assignment records
+  R07 | Asset                         | AssetOperatorAssignment        | 1 : M       | AssetOperatorAssignment.asset_id           | Yes       | One asset has many operator assignments
+  R08 | Driver                        | AssetOperatorAssignment        | 1 : M       | AssetOperatorAssignment.driver_id          | Yes       | One driver operates many assets over time
+  R09 | Project                       | SiteFuelTank                   | 1 : M       | SiteFuelTank.project_id                    | Yes       | One site has one or more fuel tanks
+  R10 | SiteFuelTank                  | SiteFuelDelivery               | 1 : M       | SiteFuelDelivery.tank_id                   | Yes       | One tank receives many deliveries
+  R11 | Vendor                        | SiteFuelDelivery               | 1 : M       | SiteFuelDelivery.vendor_id                 | Yes       | One fuel supplier makes many deliveries
+  R12 | Asset                         | FuelLog                        | 1 : M       | FuelLog.asset_id                           | Yes       | One asset generates many fuel log entries
+  R13 | Driver                        | FuelLog                        | 1 : M       | FuelLog.driver_id                          | Yes       | One driver linked to many fuel entries
+  R14 | Project                       | FuelLog                        | 1 : M       | FuelLog.project_id                         | Yes       | One site has many fuel log entries
+  R15 | SiteFuelTank                  | FuelLog                        | 1 : M       | FuelLog.tank_id                            | No        | Null if fueled at external station
+  R16 | FuelLog                       | FuelAnomaly                    | 1 : 0..1    | FuelAnomaly.fuel_log_id                    | No        | One fuel log optionally triggers one anomaly
+  R17 | FuelLog                       | FuelLog                        | 1 : 0..1    | FuelLog.corrects_log_id                    | No        | Self-ref — correction points to original
+  R18 | Asset                         | UtilizationLog                 | 1 : M       | UtilizationLog.asset_id                    | Yes       | One asset has many daily utilization logs
+  R19 | Driver                        | UtilizationLog                 | 1 : M       | UtilizationLog.driver_id                   | Yes       | One driver in many utilization shift logs
+  R20 | Project                       | UtilizationLog                 | 1 : M       | UtilizationLog.project_id                  | Yes       | One site generates many utilization records
+
+================================================================================
+END OF DATA DICTIONARY — DOMAIN GROUP 3: OPERATIONS
+================================================================================

@@ -1,0 +1,118 @@
+// ============================================================
+// EMS — ERD DOMAIN GROUP 2: DRIVER & PEOPLE DOMAIN
+// Entities: Employee, Role, Driver, DriverLicense,
+//           DriverTrainingRecord, DriverBehaviorScore,
+//           DriverBehaviorScoreHistory
+// ============================================================
+
+Table Role {
+  id              uuid        [pk]
+  role_code       varchar(30) [unique, not null, note: "EXEC / FLEET_MGR / SITE_ENG / MECH / MECH_SUP / HSE / FINANCE / PM / SYS_ADMIN"]
+  role_name       varchar(100)[not null]
+  description     text
+  is_active       boolean     [not null, default: true]
+  created_at      timestamptz [not null, default: `now()`]
+}
+
+Table Employee {
+  id                  uuid        [pk]
+  employee_code       varchar(30) [unique, not null, note: "e.g. EMP-2024-0001"]
+  role_id             uuid        [not null, ref: > Role.id]
+  full_name           varchar(200)[not null]
+  nationality         varchar(100)[not null]
+  date_of_birth       date
+  job_title           varchar(150)[not null]
+  department          varchar(100)
+  email               varchar(200)[unique, not null]
+  phone               varchar(30)
+  password_hash       varchar(255)[not null, note: "bcrypt hash, min work factor 12"]
+  is_active           boolean     [not null, default: true]
+  last_login_at       timestamptz
+  created_at          timestamptz [not null, default: `now()`]
+  updated_at          timestamptz [not null, default: `now()`]
+}
+
+Table Driver {
+  id                          uuid        [pk]
+  employee_id                 uuid        [unique, not null, ref: - Employee.id, note: "ISA — Driver is a subtype of Employee"]
+  medical_cert_number         varchar(100)[not null]
+  medical_cert_expiry         date        [not null]
+  years_of_experience         smallint
+  previous_employer           varchar(200)
+  emergency_contact_name      varchar(200)
+  emergency_contact_phone     varchar(30)
+  emergency_contact_relation  varchar(50)
+  is_active                   boolean     [not null, default: true]
+  created_at                  timestamptz [not null, default: `now()`]
+  updated_at                  timestamptz [not null, default: `now()`]
+}
+
+Table DriverLicense {
+  id                      uuid        [pk]
+  driver_id               uuid        [not null, ref: > Driver.id]
+  license_number          varchar(100)[not null]
+  license_category        varchar(50) [not null, note: "Light-Vehicle / Heavy-Vehicle / Crane-Operator / Forklift / AWP"]
+  issuing_authority       varchar(200)[not null, note: "e.g. Qatar Traffic Dept, UAE RTA"]
+  issuing_country         varchar(10) [not null, note: "QAT / UAE / SAU / IND / PHI etc."]
+  issue_date              date        [not null]
+  expiry_date             date        [not null]
+  is_current              boolean     [not null, default: true]
+  renewed_from_license_id uuid        [ref: > DriverLicense.id, note: "Self-ref: links renewal to previous license"]
+  created_at              timestamptz [not null, default: `now()`]
+
+  indexes {
+    (driver_id, is_current)
+    (expiry_date)
+  }
+}
+
+Table DriverTrainingRecord {
+  id                  uuid        [pk]
+  driver_id           uuid        [not null, ref: > Driver.id]
+  training_type       varchar(100)[not null, note: "Defensive Driving / HIAB / Crane / H2S / Forklift / AWP / First Aid"]
+  training_provider   varchar(200)
+  training_date       date        [not null]
+  certificate_number  varchar(100)
+  expiry_date         date        [note: "Null if training does not expire"]
+  is_valid            boolean     [not null, default: true]
+  created_at          timestamptz [not null, default: `now()`]
+
+  indexes {
+    (driver_id, training_type)
+  }
+}
+
+Table DriverBehaviorScore {
+  id                          uuid        [pk]
+  driver_id                   uuid        [unique, not null, ref: - Driver.id, note: "Current score — one active record per driver"]
+  incident_score              decimal(5,2)[not null, note: "Component: weight 40%. Max 100."]
+  fuel_score                  decimal(5,2)[not null, note: "Component: weight 30%. Max 100."]
+  breakdown_attribution_score decimal(5,2)[not null, note: "Component: weight 20%. Max 100."]
+  compliance_score            decimal(5,2)[not null, note: "Component: weight 10%. Max 100."]
+  composite_score             decimal(5,2)[not null, note: "Weighted sum of all components. Max 100."]
+  risk_category               varchar(10) [not null, note: "Low / Medium / High"]
+  incidents_last_90_days      smallint    [not null, default: 0]
+  fuel_anomalies_last_30_days smallint    [not null, default: 0]
+  breakdowns_attributed_last_90_days smallint [not null, default: 0]
+  last_computed_at            timestamptz [not null, note: "Set by nightly batch job"]
+  model_version               varchar(20) [not null]
+  created_at                  timestamptz [not null, default: `now()`]
+  updated_at                  timestamptz [not null, default: `now()`]
+}
+
+Table DriverBehaviorScoreHistory {
+  id                  uuid        [pk]
+  driver_id           uuid        [not null, ref: > Driver.id]
+  composite_score     decimal(5,2)[not null]
+  risk_category       varchar(10) [not null]
+  incident_score      decimal(5,2)[not null]
+  fuel_score          decimal(5,2)[not null]
+  breakdown_attribution_score decimal(5,2)[not null]
+  compliance_score    decimal(5,2)[not null]
+  computed_at         timestamptz [not null]
+  model_version       varchar(20) [not null]
+
+  indexes {
+    (driver_id, computed_at desc)
+  }
+}

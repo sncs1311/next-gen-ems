@@ -1,0 +1,242 @@
+// ============================================================
+// EMS — ERD DOMAIN GROUP 4: MAINTENANCE & TRANSFER DOMAIN
+// Entities: PreventiveMaintenanceSchedule, MaintenanceJobCard,
+//           JobCardPart, JobCardLabor, BreakdownLog,
+//           RepairWarranty, TransferRequest,
+//           TransferStateHistory, TransferInspection
+// ============================================================
+
+Table PreventiveMaintenanceSchedule {
+  id                      uuid        [pk]
+  asset_id                uuid        [not null, note: "FK to Asset"]
+  service_type            varchar(100)[not null, note: "Engine-Oil / Oil-Filter / Air-Filter / Fuel-Filter / Hydraulic-Oil / Greasing / Full-Inspection"]
+  interval_hours          smallint    [note: "OEM interval in hours — for equipment"]
+  interval_km             integer     [note: "OEM interval in km — for vehicles"]
+  last_service_date       date
+  last_service_meter_hours decimal(10,2)
+  last_service_meter_km   decimal(10,2)
+  next_due_date           date        [note: "Projected from last service + interval"]
+  next_due_hours          decimal(10,2)
+  next_due_km             decimal(10,2)
+  overdue_status          varchar(20) [not null, default: "OK", note: "OK / Warning / Critical"]
+  last_job_card_id        uuid        [note: "FK to MaintenanceJobCard — last closed card for this service type"]
+  created_at              timestamptz [not null, default: `now()`]
+  updated_at              timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, service_type) [unique]
+    (next_due_date)
+    (overdue_status)
+  }
+}
+
+Table MaintenanceJobCard {
+  id                      uuid        [pk]
+  job_card_number         varchar(30) [unique, not null, note: "Format: JC-YYYY-NNNNNN"]
+  asset_id                uuid        [not null, note: "FK to Asset"]
+  job_card_type           varchar(20) [not null, note: "Preventive / Corrective"]
+  service_type            varchar(100)[note: "Populated for Preventive type"]
+  fault_description       text        [note: "Populated for Corrective type"]
+  fault_category          varchar(50) [note: "Engine / Hydraulics / Electrical / Structural / Tyres / Brakes / Transmission / Cooling / Other"]
+  status                  varchar(40) [not null, default: "Open", note: "Open / In-Progress / Parts-Pending / Completed-Pending-Approval / Closed"]
+  workshop_type           varchar(20) [not null, note: "Internal / External"]
+  vendor_id               uuid        [note: "FK to Vendor — required if workshop_type = External"]
+  vendor_invoice_reference varchar(100)
+  project_id              uuid        [note: "FK to Project — site where asset was when work was done"]
+  yard_location_id        uuid        [note: "FK to WarehouseYardLocation — if work done in yard"]
+  meter_reading_at_open_hours decimal(10,2)
+  meter_reading_at_open_km    decimal(10,2)
+  meter_reading_at_close_hours decimal(10,2)
+  meter_reading_at_close_km   decimal(10,2)
+  opened_at               timestamptz [not null, default: `now()`]
+  parts_pending_since     timestamptz [note: "Set when status moves to Parts-Pending"]
+  parts_expected_by       date        [note: "Expected parts delivery date"]
+  completed_at            timestamptz [note: "Set when status moves to Completed-Pending-Approval"]
+  closed_at               timestamptz [note: "Set when Supervisor closes the card"]
+  total_parts_cost        decimal(12,2)[not null, default: 0, note: "Auto-summed from JobCardPart"]
+  total_labor_cost        decimal(12,2)[not null, default: 0, note: "Auto-summed from JobCardLabor"]
+  total_cost              decimal(12,2)[not null, default: 0, note: "parts + labor"]
+  created_by              uuid        [not null, note: "FK to Employee — Mechanic or Supervisor"]
+  approved_by             uuid        [note: "FK to Employee — Workshop Supervisor. Null until closed."]
+  approval_remarks        text        [note: "Required when closing"]
+  breakdown_log_id        uuid        [note: "FK to BreakdownLog — required if job_card_type = Corrective"]
+  preventive_schedule_id  uuid        [note: "FK to PreventiveMaintenanceSchedule — required if Preventive"]
+  is_archived             boolean     [not null, default: false]
+  created_at              timestamptz [not null, default: `now()`]
+  updated_at              timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, opened_at desc)
+    (status)
+    (breakdown_log_id)
+  }
+}
+
+Table JobCardPart {
+  id                  uuid        [pk]
+  job_card_id         uuid        [not null, ref: > MaintenanceJobCard.id]
+  spare_part_id       uuid        [not null, ref: > SparePart.id]
+  quantity            decimal(8,2)[not null]
+  unit_cost           decimal(10,2)[not null]
+  total_cost          decimal(12,2)[not null, note: "quantity * unit_cost. Auto-calculated."]
+  part_condition      varchar(20) [not null, default: "New", note: "New / Reconditioned / Warranty-Replacement"]
+  warranty_claim      boolean     [not null, default: false]
+  notes               text
+  created_at          timestamptz [not null, default: `now()`]
+
+  indexes {
+    (job_card_id)
+    (spare_part_id)
+  }
+}
+
+Table JobCardLabor {
+  id                  uuid        [pk]
+  job_card_id         uuid        [not null, ref: > MaintenanceJobCard.id]
+  technician_id       uuid        [not null, note: "FK to Employee — Mechanic"]
+  work_date           date        [not null]
+  hours_worked        decimal(4,2)[not null]
+  labor_rate_per_hour decimal(8,2)[not null]
+  total_labor_cost    decimal(10,2)[not null, note: "hours_worked * labor_rate. Auto-calculated."]
+  work_description    text
+  created_at          timestamptz [not null, default: `now()`]
+
+  indexes {
+    (job_card_id)
+    (technician_id, work_date)
+  }
+}
+
+Table BreakdownLog {
+  id                          uuid        [pk]
+  breakdown_number            varchar(30) [unique, not null, note: "Format: BD-YYYY-NNNNNN"]
+  asset_id                    uuid        [not null, note: "FK to Asset"]
+  driver_id                   uuid        [not null, note: "FK to Driver — operator at time of breakdown"]
+  project_id                  uuid        [note: "FK to Project — location of breakdown. Null if in yard or transit."]
+  yard_location_id            uuid        [note: "FK to WarehouseYardLocation. Null if on project."]
+  transfer_request_id         uuid        [note: "FK to TransferRequest — populated if breakdown occurred in transit"]
+  occurred_at                 timestamptz [not null]
+  reported_at                 timestamptz [not null, default: `now()`]
+  reported_by                 uuid        [not null, note: "FK to Employee — Site Engineer or Driver supervisor"]
+  symptom_description         text        [not null]
+  fault_category              varchar(50) [not null, note: "Engine / Hydraulics / Electrical / Structural / Tyres / Brakes / Transmission / Cooling / Other"]
+  asset_self_recovered        boolean     [not null, default: false]
+  recovery_vehicle_required   boolean     [not null, default: false]
+  response_time_minutes       integer     [note: "Time from reported_at to job card creation. Auto-calculated."]
+  is_repeat_failure           boolean     [not null, default: false, note: "True if same fault_category broke down before within 90 days"]
+  warranty_claim_applicable   boolean     [not null, default: false, note: "True if within repair warranty period"]
+  root_cause                  varchar(200)[note: "Entered after repair is complete"]
+  root_cause_category         varchar(50) [note: "Deferred-Maintenance / Operating-Error / Part-Failure / Unknown"]
+  created_at                  timestamptz [not null, default: `now()`]
+  updated_at                  timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, occurred_at desc)
+    (driver_id, occurred_at desc)
+    (fault_category)
+    (is_repeat_failure)
+  }
+}
+
+Table RepairWarranty {
+  id                  uuid        [pk]
+  job_card_id         uuid        [unique, not null, ref: - MaintenanceJobCard.id]
+  vendor_id           uuid        [not null, note: "FK to Vendor — repair vendor who provided warranty"]
+  warranty_description text       [not null]
+  warranty_start_date date        [not null]
+  warranty_end_date   date        [not null]
+  scope_of_coverage   text        [note: "What exactly is covered under this warranty"]
+  vendor_contact_for_claims varchar(200)
+  is_active           boolean     [not null, default: true]
+  claimed_at          timestamptz [note: "Set if warranty claim is raised"]
+  claim_outcome       varchar(200)
+  created_at          timestamptz [not null, default: `now()`]
+  updated_at          timestamptz [not null, default: `now()`]
+
+  indexes {
+    (warranty_end_date)
+    (vendor_id)
+  }
+}
+
+Table TransferRequest {
+  id                          uuid        [pk]
+  transfer_number             varchar(30) [unique, not null, note: "Format: TR-YYYY-NNNNNN"]
+  asset_id                    uuid        [not null, note: "FK to Asset"]
+  source_project_id           uuid        [ref: > Project.id, note: "Null if source is a yard"]
+  source_yard_id              uuid        [note: "FK to WarehouseYardLocation. Null if source is a project."]
+  destination_project_id      uuid        [ref: > Project.id, note: "Null if destination is a yard"]
+  destination_yard_id         uuid        [note: "FK to WarehouseYardLocation. Null if destination is a project."]
+  requested_by                uuid        [not null, note: "FK to Employee — Site Engineer or PM"]
+  requested_at                timestamptz [not null, default: `now()`]
+  required_by_date            date
+  transfer_reason             varchar(50) [not null, note: "Project-Mobilization / Project-Demobilization / Reallocation / Breakdown-Recovery / Return-to-Yard / Other"]
+  reason_details              text        [note: "Required if transfer_reason = Other"]
+  current_status              varchar(40) [not null, default: "Pending", note: "Pending / Approved / Rejected / Dispatched / In-Transit / In-Transit-Breakdown / Completed / Cancelled"]
+  approved_by                 uuid        [note: "FK to Employee — Fleet Manager"]
+  approved_at                 timestamptz
+  approval_remarks            text
+  rejection_reason            text        [note: "Required if status = Rejected"]
+  gate_pass_number            varchar(100)[note: "Required at dispatch"]
+  departure_date              timestamptz [note: "Actual departure — set at dispatch"]
+  arrival_date                timestamptz [note: "Actual arrival — set at arrival confirmation"]
+  driver_id                   uuid        [note: "FK to Driver — company driver for the move. Null if third-party transporter."]
+  transporter_company         varchar(200)[note: "Third-party transporter company name"]
+  transporter_vehicle_plate   varchar(30) [note: "Low-bed or trailer plate"]
+  transporter_driver_name     varchar(200)
+  waybill_number              varchar(100)
+  carnet_de_passage_number    varchar(100)[note: "For cross-border transfers"]
+  export_cert_reference       varchar(100)
+  customs_clearance_reference varchar(100)
+  is_archived                 boolean     [not null, default: false]
+  created_at                  timestamptz [not null, default: `now()`]
+  updated_at                  timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, current_status)
+    (current_status)
+    (requested_by, requested_at desc)
+    (approved_by, approved_at desc)
+  }
+
+  note: "CHECK: source_project_id IS NOT NULL XOR source_yard_id IS NOT NULL. CHECK: destination_project_id IS NOT NULL XOR destination_yard_id IS NOT NULL."
+}
+
+Table TransferStateHistory {
+  id                  uuid        [pk]
+  transfer_request_id uuid        [not null, ref: > TransferRequest.id]
+  from_status         varchar(40) [note: "Null for the initial Pending state entry"]
+  to_status           varchar(40) [not null]
+  changed_by          uuid        [not null, note: "FK to Employee — who triggered this state change"]
+  changed_at          timestamptz [not null, default: `now()`]
+  remarks             text
+
+  indexes {
+    (transfer_request_id, changed_at desc)
+  }
+}
+
+Table TransferInspection {
+  id                          uuid        [pk]
+  transfer_request_id         uuid        [not null, ref: > TransferRequest.id]
+  inspection_type             varchar(20) [not null, note: "Pre-Departure / Post-Arrival"]
+  inspection_date             timestamptz [not null]
+  inspected_by                uuid        [not null, note: "FK to Employee"]
+  tyre_condition              varchar(10) [not null, note: "Pass / Fail"]
+  tyre_condition_remark       text
+  lights_operational          varchar(10) [not null, note: "Pass / Fail / NA"]
+  fluid_levels_checked        varchar(10) [not null, note: "Pass / Fail / NA"]
+  body_damage_noted           boolean     [not null, default: false]
+  body_damage_description     text        [note: "Required if body_damage_noted = true"]
+  fuel_level_percent          smallint    [note: "0-100"]
+  meter_reading_hours         decimal(10,2)
+  meter_reading_km            decimal(10,2)
+  overall_condition           varchar(10) [not null, note: "Good / Fair / Poor"]
+  photos_attached             boolean     [not null, default: false]
+  general_remarks             text
+  created_at                  timestamptz [not null, default: `now()`]
+
+  indexes {
+    (transfer_request_id, inspection_type) [unique]
+  }
+}

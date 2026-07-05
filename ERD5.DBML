@@ -1,0 +1,220 @@
+// ============================================================
+// EMS — ERD DOMAIN GROUP 5: ANALYTICS, INTELLIGENCE & AUDIT
+// Entities: IncidentReport, IncidentMedia,
+//           AssetKPISnapshot, PredictiveMaintenanceScore,
+//           FuelForecast, ReplacementAlert,
+//           SystemAlert, AuditLog
+// ============================================================
+
+Table IncidentReport {
+  id                          uuid        [pk]
+  incident_number             varchar(30) [unique, not null, note: "Format: INC-YYYY-NNNNNN"]
+  asset_id                    uuid        [not null, note: "FK to Asset"]
+  driver_id                   uuid        [not null, note: "FK to Driver — operator at time of incident"]
+  project_id                  uuid        [note: "FK to Project. Null if in yard or transit."]
+  yard_location_id            uuid        [note: "FK to WarehouseYardLocation. Null if on project."]
+  transfer_request_id         uuid        [note: "FK to TransferRequest — if incident occurred in transit"]
+  incident_type               varchar(50) [not null, note: "Minor-Accident / Major-Accident / Near-Miss / Fire / Equipment-Tip-Over / Falling-Object / Third-Party-Property-Damage / Personal-Injury"]
+  occurred_at                 timestamptz [not null]
+  reported_at                 timestamptz [not null, default: `now()`]
+  reported_by                 uuid        [not null, note: "FK to Employee"]
+  third_party_involved        boolean     [not null, default: false]
+  third_party_vehicle_plate   varchar(30) [note: "Required if third_party_involved = true"]
+  third_party_company         varchar(200)
+  third_party_driver_name     varchar(200)
+  third_party_insurance_details text
+  personal_injury_occurred    boolean     [not null, default: false]
+  injured_persons_details     text        [note: "JSON or text list of injured persons with details"]
+  medical_attention_required  boolean     [not null, default: false]
+  hospitalization_occurred    boolean     [not null, default: false]
+  medical_facility            varchar(300)
+  police_report_number        varchar(100)[note: "Muroor / Traffic Dept reference. Required for Major Accident."]
+  insurance_claim_number      varchar(100)
+  estimated_damage_cost       decimal(12,2)
+  estimated_third_party_claim decimal(12,2)
+  root_cause_category         varchar(50) [note: "Human-Error / Mechanical-Failure / Environmental / Procedural-Violation / Unknown"]
+  root_cause_description      text
+  corrective_action           text        [note: "Required before incident can be closed"]
+  investigated_by             uuid        [note: "FK to Employee — HSE Officer"]
+  investigation_start_date    date
+  closure_date                date
+  incident_status             varchar(20) [not null, default: "Open", note: "Open / Under-Investigation / Closed"]
+  is_archived                 boolean     [not null, default: false]
+  created_at                  timestamptz [not null, default: `now()`]
+  updated_at                  timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, occurred_at desc)
+    (driver_id, occurred_at desc)
+    (project_id, occurred_at desc)
+    (incident_type)
+    (incident_status)
+  }
+}
+
+Table IncidentMedia {
+  id                  uuid        [pk]
+  incident_id         uuid        [not null, ref: > IncidentReport.id]
+  media_type          varchar(20) [not null, note: "Photo / Document / Video"]
+  file_name           varchar(255)[not null]
+  file_path_url       text        [not null]
+  file_size_bytes     integer
+  mime_type           varchar(100)
+  caption             varchar(300)
+  uploaded_by         uuid        [not null, note: "FK to Employee"]
+  uploaded_at         timestamptz [not null, default: `now()`]
+
+  indexes {
+    (incident_id)
+  }
+}
+
+Table AssetKPISnapshot {
+  id                          uuid        [pk]
+  asset_id                    uuid        [not null, note: "FK to Asset"]
+  snapshot_date               date        [not null, note: "Date this snapshot was computed"]
+  period_start                date        [not null]
+  period_end                  date        [not null]
+  utilization_rate_percent    decimal(5,2)[note: "productive_hours / available_hours * 100"]
+  total_available_hours       decimal(8,2)
+  total_productive_hours      decimal(8,2)
+  total_downtime_hours        decimal(8,2)
+  mtbf_hours                  decimal(8,2)[note: "Mean Time Between Failures in hours"]
+  mttr_hours                  decimal(6,2)[note: "Mean Time To Repair in hours"]
+  breakdown_count             smallint
+  total_fuel_liters           decimal(10,2)
+  total_fuel_cost             decimal(12,2)
+  total_maintenance_cost      decimal(12,2)
+  total_preventive_cost       decimal(12,2)
+  total_corrective_cost       decimal(12,2)
+  total_cost_of_ownership     decimal(15,2)[note: "Amortized purchase + fuel + maintenance + insurance for period"]
+  cumulative_repair_cost      decimal(15,2)[note: "All-time corrective maintenance cost to date"]
+  repair_to_book_value_ratio  decimal(5,4)[note: "cumulative_repair_cost / current_book_value"]
+  computed_at                 timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, snapshot_date desc) [unique]
+    (snapshot_date desc)
+  }
+}
+
+Table PredictiveMaintenanceScore {
+  id                          uuid        [pk]
+  asset_id                    uuid        [not null, note: "FK to Asset"]
+  score                       decimal(5,2)[not null, note: "Breakdown probability 0-100"]
+  risk_category               varchar(10) [not null, note: "Low / Medium / High"]
+  top_feature_1               varchar(100)[note: "Most influential feature in this prediction"]
+  top_feature_2               varchar(100)
+  top_feature_3               varchar(100)
+  recommended_action          text        [note: "Human-readable recommended action from model"]
+  hours_since_last_service    decimal(8,2)[note: "Feature value used in this prediction"]
+  breakdowns_last_90_days     smallint    [note: "Feature value used"]
+  fuel_anomalies_last_30_days smallint    [note: "Feature value used"]
+  overdue_maintenance_flag    boolean     [note: "Feature value used"]
+  asset_age_years             decimal(4,1)[note: "Feature value used"]
+  is_current                  boolean     [not null, default: true, note: "False for historical score records"]
+  model_version               varchar(20) [not null]
+  computed_at                 timestamptz [not null]
+  created_at                  timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, is_current)
+    (asset_id, computed_at desc)
+    (risk_category)
+    (score desc)
+  }
+}
+
+Table FuelForecast {
+  id                      uuid        [pk]
+  project_id              uuid        [not null, note: "FK to Project"]
+  forecast_type           varchar(10) [not null, note: "Weekly / Monthly"]
+  forecast_period_start   date        [not null]
+  forecast_period_end     date        [not null]
+  predicted_volume_liters decimal(10,2)[not null]
+  confidence_lower        decimal(10,2)[not null, note: "Lower bound of confidence interval"]
+  confidence_upper        decimal(10,2)[not null, note: "Upper bound of confidence interval"]
+  active_equipment_count  smallint    [note: "Input feature: equipment count at site at time of forecast"]
+  activity_intensity      smallint    [note: "Input feature: 1-5 scale set by Project Manager"]
+  actual_volume_liters    decimal(10,2)[note: "Filled in after the period ends for model evaluation"]
+  forecast_error          decimal(10,2)[note: "actual - predicted. Filled after period ends."]
+  model_version           varchar(20) [not null]
+  generated_at            timestamptz [not null]
+  created_at              timestamptz [not null, default: `now()`]
+
+  indexes {
+    (project_id, forecast_period_start desc)
+    (forecast_type, forecast_period_start)
+  }
+}
+
+Table ReplacementAlert {
+  id                          uuid        [pk]
+  asset_id                    uuid        [not null, note: "FK to Asset"]
+  trigger_date                date        [not null]
+  cumulative_repair_cost      decimal(15,2)[not null]
+  current_book_value          decimal(15,2)[not null]
+  repair_to_book_value_ratio  decimal(5,4)[not null]
+  alert_threshold_triggered   decimal(5,4)[not null, note: "The configured threshold that was crossed: e.g. 0.60 or 0.80"]
+  alert_level                 varchar(10) [not null, note: "First / Second"]
+  recommended_action          text        [not null, note: "e.g. Initiate replacement evaluation"]
+  alert_status                varchar(20) [not null, default: "Open", note: "Open / Acknowledged / Actioned / Dismissed"]
+  acknowledged_by             uuid        [note: "FK to Employee — Fleet Manager"]
+  acknowledged_at             timestamptz
+  action_taken                text        [note: "Description of action taken by Fleet Manager"]
+  created_at                  timestamptz [not null, default: `now()`]
+  updated_at                  timestamptz [not null, default: `now()`]
+
+  indexes {
+    (asset_id, trigger_date desc)
+    (alert_status)
+  }
+}
+
+Table SystemAlert {
+  id                  uuid        [pk]
+  alert_type          varchar(50) [not null, note: "Registration-Expiry / Insurance-Expiry / Certification-Expiry / License-Expiry / Medical-Expiry / Overdue-Maintenance / Fuel-Anomaly / Predictive-Risk / Replacement-Threshold / Incident-Critical / Transit-Damage / Warranty-Claim"]
+  severity            varchar(10) [not null, note: "Info / Warning / Critical"]
+  entity_type         varchar(50) [not null, note: "Asset / Driver / Project / TransferRequest / IncidentReport — polymorphic"]
+  entity_id           uuid        [not null, note: "ID of the referenced entity"]
+  entity_display_name varchar(200)[not null, note: "Human-readable label e.g. EQ-2024-0001 Toyota Land Cruiser"]
+  message             text        [not null, note: "Plain English description of the alert"]
+  action_required     text        [note: "Suggested action for the alert recipient"]
+  routed_to_role      varchar(30) [not null, note: "Role code of the target audience"]
+  is_acknowledged     boolean     [not null, default: false]
+  acknowledged_by     uuid        [note: "FK to Employee"]
+  acknowledged_at     timestamptz
+  auto_resolved       boolean     [not null, default: false, note: "True if alert resolved without manual action (e.g. document renewed)"]
+  auto_resolved_at    timestamptz
+  created_at          timestamptz [not null, default: `now()`]
+
+  indexes {
+    (entity_type, entity_id)
+    (alert_type, is_acknowledged)
+    (severity, is_acknowledged)
+    (routed_to_role, is_acknowledged)
+    (created_at desc)
+  }
+}
+
+Table AuditLog {
+  id              uuid        [pk]
+  table_name      varchar(100)[not null, note: "Name of the table where the change occurred"]
+  record_id       uuid        [not null, note: "Primary key of the changed record"]
+  operation       varchar(10) [not null, note: "INSERT / UPDATE / SOFT-DELETE"]
+  old_values      jsonb       [note: "Previous state of changed fields. Null for INSERT."]
+  new_values      jsonb       [not null, note: "New state of all changed fields"]
+  changed_by      uuid        [not null, note: "FK to Employee — user who performed the operation"]
+  changed_at      timestamptz [not null, default: `now()`]
+  ip_address      varchar(45) [note: "Client IP address at time of operation"]
+  user_agent      text        [note: "Browser/client user agent string"]
+  session_id      varchar(100)[note: "JWT jti claim — links audit entry to the auth session"]
+
+  indexes {
+    (table_name, record_id, changed_at desc)
+    (changed_by, changed_at desc)
+    (changed_at desc)
+  }
+
+  note: "INSERT-ONLY table. No UPDATE or DELETE permissions granted to any application role. Enforced at database user permission level."
+}

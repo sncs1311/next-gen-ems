@@ -1,0 +1,267 @@
+================================================================================
+EMS — DATA DICTIONARY
+DOMAIN GROUP 2: DRIVER & PEOPLE DOMAIN
+Version 1.0 | Phase 1 Deliverable | IEEE 830 Compliant
+================================================================================
+
+TABLES IN THIS DOMAIN:
+  1. Role
+  2. Employee
+  3. Driver
+  4. DriverLicense
+  5. DriverTrainingRecord
+  6. DriverBehaviorScore
+  7. DriverBehaviorScoreHistory
+
+================================================================================
+TABLE 1: Role
+PURPOSE: Lookup table defining all system roles. Drives RBAC enforcement
+         at both the API middleware layer and the front-end UI layer.
+================================================================================
+
+  COLUMN      | DATA TYPE    | CONSTRAINTS               | DESCRIPTION                              | EXAMPLE
+  ------------|--------------|---------------------------|------------------------------------------|-------------------
+  id          | uuid         | PK, NOT NULL              | Unique record identifier                 | n4o5p6q7-...
+  role_code   | varchar(30)  | UNIQUE, NOT NULL          | Short code used in RBAC logic            | FLEET_MGR
+  role_name   | varchar(100) | NOT NULL                  | Full human-readable role name            | Fleet Manager
+  description | text         | NULL                      | Description of role responsibilities     | Approves transfers and manages fleet KPIs
+  is_active   | boolean      | NOT NULL, DEFAULT true    | Soft disable flag                        | true
+  created_at  | timestamptz  | NOT NULL, DEFAULT now()   | Record creation timestamp                | 2024-01-01 08:00:00+03
+
+VALID ROLE CODES AND PERMISSIONS SUMMARY:
+  EXEC        = Executive           | Read-only: executive dashboard, KPIs, cost reports
+  FLEET_MGR   = Fleet Manager       | Full access to all modules except system admin
+  SITE_ENG    = Site Engineer       | Fuel entry, breakdown reports, transfer requests, incidents
+  PM          = Project Manager     | View project summary, submit transfers, set fuel forecast intensity
+  MECH        = Workshop Mechanic   | Create and update job cards, log parts and labor
+  MECH_SUP    = Workshop Supervisor | All mechanic actions plus close job cards, record warranties
+  HSE         = HSE Officer         | Incident investigation, root cause, closure
+  FINANCE     = Finance User        | View purchase records, insurance, TCO reports only
+  SYS_ADMIN   = System Admin        | User management, config, lookup tables, audit log
+
+================================================================================
+TABLE 2: Employee
+PURPOSE: All company employees who interact with the EMS system.
+         Drives RBAC — every system user is an Employee with one Role.
+         Driver is a subtype of Employee (ISA relationship).
+================================================================================
+
+  COLUMN         | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                        | EXAMPLE
+  ---------------|---------------|---------------------------|----------------------------------------------------|-------------------
+  id             | uuid          | PK, NOT NULL              | Unique record identifier                           | o5p6q7r8-...
+  employee_code  | varchar(30)   | UNIQUE, NOT NULL          | Company employee ID. Format: EMP-YYYY-NNNN         | EMP-2024-0001
+  role_id        | uuid          | FK -> Role.id, NOT NULL   | Assigned system role — one role per employee       | n4o5p6q7-...
+  full_name      | varchar(200)  | NOT NULL                  | Full legal name as per company records             | Hassan Al-Thani
+  nationality    | varchar(100)  | NOT NULL                  | Nationality                                        | Qatari
+  date_of_birth  | date          | NULL                      | Date of birth                                      | 1985-06-15
+  job_title      | varchar(150)  | NOT NULL                  | Official job title                                 | Fleet Manager
+  department     | varchar(100)  | NULL                      | Department or division                             | Operations
+  email          | varchar(200)  | UNIQUE, NOT NULL          | Work email — used as login username                | hassan@company.com
+  phone          | varchar(30)   | NULL                      | Contact phone including country code               | +974 5544 1234
+  password_hash  | varchar(255)  | NOT NULL                  | bcrypt hash of password. Minimum work factor: 12   | $2b$12$...
+  is_active      | boolean       | NOT NULL, DEFAULT true    | False = account disabled, login blocked            | true
+  last_login_at  | timestamptz   | NULL                      | Timestamp of last successful authentication        | 2024-07-04 08:14:00+03
+  created_at     | timestamptz   | NOT NULL, DEFAULT now()   | Record creation timestamp                          | 2024-01-01 08:00:00+03
+  updated_at     | timestamptz   | NOT NULL, DEFAULT now()   | Last modification timestamp                        | 2024-01-01 08:00:00+03
+
+BUSINESS RULES:
+  - Email is the login username — must be unique across all employees
+  - Passwords stored as bcrypt hash only — plaintext never stored or logged
+  - Deactivated accounts (is_active = false) retain all historical records
+  - employee_code auto-generated: EMP-[YYYY]-[0001 to 9999]
+  - One employee has exactly one role at a time
+
+================================================================================
+TABLE 3: Driver
+PURPOSE: Extended profile for employees who are authorized to operate
+         company assets. Not all employees are drivers.
+         ISA subtype relationship: every Driver record must reference
+         a valid Employee record. Driver inherits all Employee attributes
+         and adds operational and compliance-specific fields.
+================================================================================
+
+  COLUMN                      | DATA TYPE    | CONSTRAINTS                | DESCRIPTION                                        | EXAMPLE
+  ----------------------------|--------------|----------------------------|----------------------------------------------------|-------------------
+  id                          | uuid         | PK, NOT NULL               | Unique record identifier                           | p6q7r8s9-...
+  employee_id                 | uuid         | UNIQUE, FK -> Employee.id  | Parent employee — one-to-one ISA relationship      | o5p6q7r8-...
+                              |              | NOT NULL                   |                                                    |
+  medical_cert_number         | varchar(100) | NOT NULL                   | Medical fitness certificate reference number       | MED-QAT-2024-00881
+  medical_cert_expiry         | date         | NOT NULL                   | Medical certificate expiry date                    | 2025-06-30
+  years_of_experience         | smallint     | NULL                       | Total years of relevant driving or operating       | 8
+  previous_employer           | varchar(200) | NULL                       | Previous company name for background reference     | Gulf Construction Co.
+  emergency_contact_name      | varchar(200) | NULL                       | Emergency contact full name                        | Fatima Al-Thani
+  emergency_contact_phone     | varchar(30)  | NULL                       | Emergency contact phone number                     | +974 5566 7788
+  emergency_contact_relation  | varchar(50)  | NULL                       | Relationship to driver                             | Spouse
+  is_active                   | boolean      | NOT NULL, DEFAULT true     | Driver active flag — false removes from dropdowns  | true
+  created_at                  | timestamptz  | NOT NULL, DEFAULT now()    | Record creation timestamp                          | 2024-01-10 09:00:00+03
+  updated_at                  | timestamptz  | NOT NULL, DEFAULT now()    | Last modification timestamp                        | 2024-01-10 09:00:00+03
+
+BUSINESS RULES:
+  - System must alert at 60, 30, and 7 days before medical_cert_expiry
+  - A driver with an expired medical certificate cannot be assigned to any asset
+  - Driver profile is created separately from Employee — not all employees drive
+  - Deactivating a Driver (is_active = false) does not deactivate their Employee account
+
+================================================================================
+TABLE 4: DriverLicense
+PURPOSE: License history per driver. Separated from Driver because:
+         (1) Licenses are renewed periodically creating a history
+         (2) License category determines which asset sub-types the driver
+             is eligible to operate — enforced at assignment time
+================================================================================
+
+  COLUMN                  | DATA TYPE     | CONSTRAINTS                  | DESCRIPTION                                          | EXAMPLE
+  ------------------------|---------------|------------------------------|------------------------------------------------------|-------------------
+  id                      | uuid          | PK, NOT NULL                 | Unique record identifier                             | q7r8s9t0-...
+  driver_id               | uuid          | FK -> Driver.id, NOT NULL    | Parent driver record                                 | p6q7r8s9-...
+  license_number          | varchar(100)  | NOT NULL                     | Official license number as printed on license        | QAT-DL-2022-441892
+  license_category        | varchar(50)   | NOT NULL                     | See valid categories below                           | Heavy-Vehicle
+  issuing_authority       | varchar(200)  | NOT NULL                     | Government body that issued the license              | Qatar Traffic Department
+  issuing_country         | varchar(10)   | NOT NULL                     | ISO country code of issuing country                  | QAT
+  issue_date              | date          | NOT NULL                     | Date license was issued                              | 2022-07-01
+  expiry_date             | date          | NOT NULL                     | License expiry date                                  | 2026-07-22
+  is_current              | boolean       | NOT NULL, DEFAULT true       | Whether this is the currently active license         | true
+  renewed_from_license_id | uuid          | FK -> DriverLicense.id, NULL | Self-reference linking renewal to prior license      | null
+  created_at              | timestamptz   | NOT NULL, DEFAULT now()      | Record creation timestamp                            | 2022-07-01 10:00:00+03
+
+LICENSE CATEGORIES AND ELIGIBLE ASSET SUB-TYPES:
+  Light-Vehicle     -> SUV, Pickup, Sedan, Van (up to 3.5 ton GVM)
+  Heavy-Vehicle     -> Personnel Bus, Mini Bus, Dump Truck, Backhoe Loader, Wheel Loader, Compactor
+  Crane-Operator    -> Crawler Crane, Rough Terrain Crane, Truck Crane, All Terrain Crane
+  Forklift          -> All forklift sub-types (FKLT)
+  AWP               -> Boom Lift, Telescopic Work Platform (aerial work platforms)
+
+BUSINESS RULES:
+  - System must alert at 60, 30, and 7 days before expiry_date
+  - Assigning a driver with an expired license to any asset is BLOCKED
+  - Only one license record per driver can have is_current = true at a time
+  - When renewed: set is_current = false on old, create new with renewed_from_license_id pointing to old
+  - License category determines asset eligibility — enforced on assignment
+
+INDEX: (driver_id, is_current) — supports fast lookup of current active license
+INDEX: (expiry_date) — supports nightly expiry alert checker
+
+================================================================================
+TABLE 5: DriverTrainingRecord
+PURPOSE: Each formal training event a driver has completed.
+         Certain training types expand the driver's eligible asset scope.
+         Training certificates may expire and require renewal.
+================================================================================
+
+  COLUMN              | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                         | EXAMPLE
+  --------------------|---------------|---------------------------|-----------------------------------------------------|-------------------
+  id                  | uuid          | PK, NOT NULL              | Unique record identifier                            | r8s9t0u1-...
+  driver_id           | uuid          | FK -> Driver.id, NOT NULL | Parent driver record                                | p6q7r8s9-...
+  training_type       | varchar(100)  | NOT NULL                  | See valid training types below                      | Defensive Driving
+  training_provider   | varchar(200)  | NULL                      | Organization that delivered the training            | Gulf Safety Institute
+  training_date       | date          | NOT NULL                  | Date training was completed                         | 2023-11-15
+  certificate_number  | varchar(100)  | NULL                      | Training certificate reference number               | GSI-DD-2023-00441
+  expiry_date         | date          | NULL                      | Certificate expiry — null if training never expires | 2026-11-15
+  is_valid            | boolean       | NOT NULL, DEFAULT true    | Whether this certificate is currently valid         | true
+  created_at          | timestamptz   | NOT NULL, DEFAULT now()   | Record creation timestamp                           | 2023-11-15 16:00:00+03
+
+VALID TRAINING TYPES:
+  Defensive Driving   = Required for all drivers before first assignment
+  HIAB                = Loader crane operation on trucks
+  Crane               = General crane awareness (not operator cert)
+  H2S Safety          = Hydrogen Sulfide gas safety — mandatory on O&G sites
+  Forklift            = Forklift operation awareness
+  AWP                 = Aerial Work Platform safety
+  First Aid           = Basic first aid and CPR certification
+  Fire Safety         = Fire extinguisher and emergency evacuation
+  HSE Induction       = Site-specific safety induction
+
+INDEX: (driver_id, training_type) — supports lookup of specific training per driver
+
+================================================================================
+TABLE 6: DriverBehaviorScore
+PURPOSE: Current composite behavioral risk score per driver.
+         Computed nightly by the ML batch job using weighted components.
+         One active record per driver — updated in place, history in next table.
+         Feeds dashboard driver risk rankings and asset assignment rules.
+================================================================================
+
+  COLUMN                              | DATA TYPE     | CONSTRAINTS                | DESCRIPTION                                         | EXAMPLE
+  ------------------------------------|---------------|----------------------------|-----------------------------------------------------|-------------------
+  id                                  | uuid          | PK, NOT NULL               | Unique record identifier                            | s9t0u1v2-...
+  driver_id                           | uuid          | UNIQUE, FK -> Driver.id    | Parent driver — one active score per driver         | p6q7r8s9-...
+                                      |               | NOT NULL                   |                                                     |
+  incident_score                      | decimal(5,2)  | NOT NULL                   | Incident component score. 0 = worst, 100 = best     | 85.00
+  fuel_score                          | decimal(5,2)  | NOT NULL                   | Fuel overconsumption component. 0 = worst, 100 = best| 78.00
+  breakdown_attribution_score         | decimal(5,2)  | NOT NULL                   | Breakdown attribution component. 0 = worst, 100 = best| 90.00
+  compliance_score                    | decimal(5,2)  | NOT NULL                   | License and medical compliance. 0 = worst, 100 = best| 100.00
+  composite_score                     | decimal(5,2)  | NOT NULL                   | Weighted sum of all components. 0 = worst, 100 = best| 86.20
+  risk_category                       | varchar(10)   | NOT NULL                   | Low / Medium / High — derived from composite_score  | Low
+  incidents_last_90_days              | smallint      | NOT NULL, DEFAULT 0        | Raw count of incidents in last 90 days              | 0
+  fuel_anomalies_last_30_days         | smallint      | NOT NULL, DEFAULT 0        | Raw count of fuel anomalies attributed to driver    | 0
+  breakdowns_attributed_last_90_days  | smallint      | NOT NULL, DEFAULT 0        | Breakdowns occurring during this driver's shifts    | 0
+  last_computed_at                    | timestamptz   | NOT NULL                   | Timestamp of last nightly batch computation         | 2024-07-04 06:00:00+03
+  model_version                       | varchar(20)   | NOT NULL                   | ML model version that produced this score           | v2.1
+  created_at                          | timestamptz   | NOT NULL, DEFAULT now()    | Record creation timestamp                           | 2024-01-10 06:00:00+03
+  updated_at                          | timestamptz   | NOT NULL, DEFAULT now()    | Last modification timestamp                         | 2024-07-04 06:00:00+03
+
+COMPOSITE SCORE FORMULA:
+  composite_score = (incident_score * 0.40)
+                  + (fuel_score * 0.30)
+                  + (breakdown_attribution_score * 0.20)
+                  + (compliance_score * 0.10)
+
+RISK CATEGORY THRESHOLDS (configurable in SystemConfig):
+  Low Risk    = composite_score >= 70
+  Medium Risk = composite_score >= 45 and < 70
+  High Risk   = composite_score < 45
+
+INCIDENT SCORE DEDUCTION TABLE:
+  Near Miss             = -2 points
+  Minor Accident        = -5 points
+  Major Accident        = -15 points
+  Personal Injury       = -20 points
+  Fire or Tip-Over      = -25 points
+  Score recovery        = +1 point per 90-day incident-free period
+
+BUSINESS RULES:
+  - High Risk drivers are warned or blocked from executive vehicles and cranes
+  - Fleet Manager override of High Risk block requires logged reason
+  - Score is read-only to all roles — computed exclusively by ML batch job
+  - Weights are configurable by System Admin via System Configuration panel
+
+================================================================================
+TABLE 7: DriverBehaviorScoreHistory
+PURPOSE: Append-only history of all nightly score computations per driver.
+         Enables trend visualization on the driver profile page.
+         Used by the ML model as training features for temporal analysis.
+================================================================================
+
+  COLUMN                        | DATA TYPE     | CONSTRAINTS               | DESCRIPTION                                      | EXAMPLE
+  ------------------------------|---------------|---------------------------|--------------------------------------------------|-------------------
+  id                            | uuid          | PK, NOT NULL              | Unique record identifier                         | t0u1v2w3-...
+  driver_id                     | uuid          | FK -> Driver.id, NOT NULL | Parent driver record                             | p6q7r8s9-...
+  composite_score               | decimal(5,2)  | NOT NULL                  | Composite score at this point in time            | 86.20
+  risk_category                 | varchar(10)   | NOT NULL                  | Low / Medium / High at this point in time        | Low
+  incident_score                | decimal(5,2)  | NOT NULL                  | Incident component at time of snapshot           | 85.00
+  fuel_score                    | decimal(5,2)  | NOT NULL                  | Fuel component at time of snapshot               | 78.00
+  breakdown_attribution_score   | decimal(5,2)  | NOT NULL                  | Breakdown component at time of snapshot          | 90.00
+  compliance_score              | decimal(5,2)  | NOT NULL                  | Compliance component at time of snapshot         | 100.00
+  computed_at                   | timestamptz   | NOT NULL                  | Exact timestamp this snapshot was computed       | 2024-07-04 06:00:00+03
+  model_version                 | varchar(20)   | NOT NULL                  | ML model version used for this computation       | v2.1
+
+INDEX: (driver_id, computed_at DESC) — supports time-series trend queries
+NOTE: This table is append-only. No UPDATE or DELETE operations ever occur.
+
+================================================================================
+RELATIONSHIPS IN DOMAIN GROUP 2: DRIVER & PEOPLE
+================================================================================
+
+  REF | FROM TABLE                | TO TABLE                    | CARDINALITY | FK COLUMN                               | MANDATORY | NOTES
+  ----|---------------------------|---------------------------  |-------------|---------------------------------------- |-----------|----------------------------------------------
+  R01 | Role                      | Employee                    | 1 : M       | Employee.role_id                        | Yes       | One role assigned to many employees
+  R02 | Employee                  | Driver                      | 1 : 0..1    | Driver.employee_id                      | No        | ISA subtype — not all employees are drivers
+  R03 | Driver                    | DriverLicense               | 1 : M       | DriverLicense.driver_id                 | Yes       | At least one license required per driver
+  R04 | DriverLicense             | DriverLicense               | 1 : 0..1    | DriverLicense.renewed_from_license_id   | No        | Self-reference — renewal links to prior license
+  R05 | Driver                    | DriverTrainingRecord        | 1 : M       | DriverTrainingRecord.driver_id          | No        | Driver accumulates many training records
+  R06 | Driver                    | DriverBehaviorScore         | 1 : 1       | DriverBehaviorScore.driver_id           | Yes       | One current score record per driver
+  R07 | Driver                    | DriverBehaviorScoreHistory  | 1 : M       | DriverBehaviorScoreHistory.driver_id    | Yes       | Full nightly score history retained per driver
+
+================================================================================
+END OF DATA DICTIONARY — DOMAIN GROUP 2: DRIVER & PEOPLE
+================================================================================
