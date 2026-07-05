@@ -147,11 +147,10 @@ The system will enforce role-based access control aligned to five primary operat
 **Explicitly outside scope for this twelve-week prototype:** live GPS telematics integration, full ERP or HR system integration, mobile native application, full procurement and inventory management module, and payroll or HR management.
 
 <div align="center">
-  <img src="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/Context%20Diagram%20Level%200.png" width="85%" style="border: 1px solid #E2E8F0; border-radius: 6px;">
-  <br><br>
   <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/Context%20Diagram%20Level%200.png" target="_blank">Context Diagram Level 0 </a></b>
   <p><i>Figure 1.1: Global Functional Boundary and External Entities</i></p>
 </div>
+
 ---
 
 ## 1.3 Definitions, Acronyms, and Abbreviations
@@ -218,6 +217,7 @@ The system will enforce role-based access control aligned to five primary operat
 - LOLER 1998 and equivalent GCC lifting equipment certification standards.
 
 ---
+<div style="page-break-after: always;"></div>
 
 ## 1.5 Overview of the Remainder of This Document
 
@@ -228,6 +228,13 @@ Section 2 defines all functional requirements organized by module. Section 3 def
 # Section 2 — Functional Requirements
 
 ## 2.1 Overview of Functional Modules
+
+The system's broad operational capabilities are mapped to isolated functional components. The global interaction boundaries between system roles, external handlers, and software services can be reviewed via our high-level functional model:
+
+<div align="center">
+  <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/UML%20Use%20Case%20Diagram.png" target="_blank">Click Here to View Full Use Case Diagram in High Definition</a></b>
+  <p><i>Figure 2.1: Global Functional Boundary and User Actor Use Cases</i></p>
+</div>
 
 The EMS functional requirements are organized into ten modules. Each requirement is assigned a unique identifier in the format FR-[MODULE CODE]-[NUMBER]. Priority levels: **Critical** (system cannot function without it), **High** (significant operational impact if absent), **Medium** (improves usability or completeness), **Low** (enhancement that does not affect core operation).
 
@@ -293,6 +300,14 @@ Lifting and Heavy Shifting Equipment must have at least one valid certification 
 
 Automatic SystemAlert records generated at the following intervals before expiry: Gulf Registration at 90/60/30 days; Insurance Policy at 90/60/30 days; Equipment Certification at 60/30/7 days; Driver License at 60/30/7 days; Driver Medical Fitness at 60/30/7 days. All alerts visible on Fleet Manager dashboard with in-app notification.
 
+### A. Behavioral Process Streams & Data Flows
+<div align="center">
+  <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/DFD%201%20%E2%80%94%20Asset%20Registration.png" target="_blank">Click to Open High-Resolution Asset Registration DFD ↗</a></b>
+</div>
+
+### B. Asset Operational States
+The structural status flags (`Active`, `Idle`, `Under Maintenance`, `Decommissioned`) and transition boundaries are tracked via the operational engine:
+*   **State Transitions:** [View High-Resolution State Machine 1 — Asset Lifecycle Diagram ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/State%20Machine%201%20%E2%80%94%20Asset%20Lifecycle.png)
 ---
 
 ## 2.3 Module DR: Driver & Operator Registry
@@ -358,6 +373,14 @@ Per-site, per-period report comparing total delivered vs. total dispensed. Unacc
 
 Fuel cost trend lines per site per week/month. Shows fuel cost by asset class, top five highest fuel-consuming assets, and year-on-year comparison where historical data is available.
 
+### A. Fuel Telemetry Streams & Process Mapping
+*   **Process Streams:** [View DFD 2 — Fuel Management Diagram ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/DFD%202%20%E2%80%94%20Fuel%20Management.png)
+
+### B. Runtime Fuel Log Processing & Exception Rules
+The validation execution loops for incoming log receipts, fuel capacity limits, and anomaly detection flags run in this exact sequence:
+<div align="center">
+  <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/Sequence%20Diagram%203%20%E2%80%94%20Fuel%20Log%20%26%20Anomaly.png" target="_blank">Click to Open High-Resolution Fuel Log Validation Sequence ↗</a></b>
+</div>
 ---
 <div style="page-break-after: always;"></div>
 
@@ -407,6 +430,18 @@ Site Engineer and Workshop Mechanic create breakdown logs: asset ID, date/time, 
 
 Transfer dispatch is blocked while asset status is Under Maintenance. Block is overridable by Fleet Manager only with a mandatory logged reason.
 
+### A. Maintenance Scheduling Data Flows
+*   **Data Process Streams:** [View DFD 3 — Maintenance Management Diagram ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/DFD%203%20%E2%80%94%20Maintenance%20Management.png)
+
+### B. Runtime Execution & Job Ticket Management
+The runtime workflow for dispatching engineers, validating spare parts stock availability, and updating equipment downtime metrics follow this execution:
+<div align="center">
+  <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/Sequence%20Diagram%202%20%E2%80%94%20Maintenance%20Workflow.png" target="_blank">Click to Open Maintenance Ticket Sequence Diagram ↗</a></b>
+</div>
+
+### C. Technical Job Card Status Lifecycles
+The automated state tracking machine shifts work orders through the system pipeline (`Opened` $\rightarrow$ `In Progress` $\rightarrow$ `Closed`):
+*   **Operational Lifecycle States:** [View State Machine 2 — Job Card Lifecycle Diagram ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/State%20Machine%202%20%E2%80%94%20Job%20Card%20Lifecycle.png)
 ---
 <div style="page-break-after: always;"></div>
 
@@ -448,6 +483,10 @@ Complete chain of custody log per asset: transfer ID, source, destination, appro
 
 Additional informational fields for cross-GCC transfers: Carnet de Passage number, export certificate reference, and customs clearance reference. Informational only in this phase; not system-enforced.
 
+### A. Relocation Logistics and Incident Streams
+The asset dispatch flows, route constraints, cross-border checklist clearings, and telemetry collision metrics map to these paths:
+*   **Transfer Data Flows:** [View DFD 4 — Equipment Transfer Diagram ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/DFD%204%20%E2%80%94%20Equipment%20Transfer.png)
+*   **Asset Relocation Lifecycles:** [View State Machine 3 — Transfer Lifecycle Diagram ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/State%20Machine%203%20%E2%80%94%20Transfer%20Lifecycle.png)
 ---
 
 ## 2.7 Module IM: Incident Management
@@ -480,8 +519,10 @@ On incident closure, driver's incident score is updated: Near Miss −2, Minor A
 
 Incident analytics view: total incidents by type per site per period, incident rate per driver (incidents per 10,000 operating hours), repeat incident analysis by asset and driver, most common root cause categories, and total estimated damage cost.
 
+### B. Transit Approvals & Incident Reporting Logic
+*   **Transit Authorization Flow:** [Open High-Resolution Sequence Diagram 1 — Transfer Workflow ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/Sequence%20Diagram%201%20%E2%80%94%20Transfer%20Workflow.png)
+*   **Incident Logging & Safety Verification:** [Open High-Resolution Sequence Diagram 4 — Incident & Driver Safety ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/Sequence%20Diagram%204%20%E2%80%94%20Incident%20%26%20Driver%20Score.png)
 ---
-<div style="page-break-after: always;"></div>
 
 ## 2.8 Module PS: Project & Site Management
 
@@ -538,6 +579,11 @@ Consolidated alert panel for Fleet Manager: all upcoming expiries across all ent
 
 Panel listing assets due for preventive maintenance in next 7, 14, and 30 days (based on extrapolated meter reading progression). Visible to Fleet Manager and Workshop Supervisor. Directly actionable by creating a job card from the list.
 
+### A. Machine Learning Pipeline & Asynchronous Sensor Streams
+The raw edge telemetry ingestion architecture, features extraction loops, and live UI push communication channels are structured down below:
+<div align="center">
+  <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/DFD%205%20%E2%80%94%20Intelligence%20%26%20Analytics.png" target="_blank">Click to Open High-Resolution Analytics Pipeline DFD ↗</a></b>
+</div>
 ---
 <div style="page-break-after: always;"></div>
 
@@ -567,6 +613,9 @@ Rule-based engine monitoring cumulative corrective maintenance cost as a percent
 
 Stored evaluation metrics per trained model version. Predictive maintenance: accuracy, precision, recall, F1-score, ROC-AUC. Fuel forecasting: MAE, RMSE, R². Driver behavior: accuracy, precision, recall, F1-score per class. Accessible to System Admin and Fleet Manager.
 
+### B. Asynchronous Job Scheduling & Inference Processing
+The automated data pull cycles, training executions, predictive RUL algorithms, and exception threshold triggers execute in this timeline:
+*   **Cron & Inference Pipeline Flow:** [Open High-Resolution Sequence Diagram 5 — Nightly AI Batch ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/Sequence%20Diagram%205%20%E2%80%94%20Nightly%20AI%20Batch.png)
 ---
 <div style="page-break-after: always;"></div>
 
@@ -761,9 +810,7 @@ The ML service (Python FastAPI) operates as a sidecar service alongside the appl
 This architecture was chosen over alternatives (monolithic MVC or microservices) for the following reasons: sufficient separation of concerns for a twelve-week project without microservice orchestration overhead; independent evolution of front end, back end, and data layer; horizontal scaling support for the API tier; and correct runtime separation between Python (ML/data science) and Node.js (high-concurrency I/O).
 
 <div align="center">
-  <img src="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/System%20Architecture%20Diagram.png" width="90%" style="border: 1px solid #E2E8F0; border-radius: 6px;">
-  <br><br>
-  🌐 <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/System%20Architecture%20Diagram.png" target="_blank">System Architecture</a></b>
+  <b><a href="https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/System%20Architecture%20Diagram.png" target="_blank">System Architecture</a></b>
   <p><i>Figure 4.1: Component Infrastructure, API Layer, and ML Analytics Pipelines</i></p>
 </div>
 ---
@@ -822,6 +869,7 @@ The data tier is **PostgreSQL 15**. Selected for:
 The database is accessed exclusively through the Prisma ORM from the Node.js application tier. Direct database connections from the front end or client browsers are prohibited by network configuration.
 
 ---
+<div style="page-break-after: always;"></div>
 
 ## 4.5 Machine Learning Service
 
@@ -867,6 +915,18 @@ Document and image attachments are stored in the **file system or cloud object s
 
 Direct file URLs are **never returned to the client**. Instead, the API generates short-lived **signed URLs** for file access, preventing unauthorized hotlinking of sensitive documents such as insurance certificates or purchase invoices.
 
+___
+## 4.9 System Class and Structural Models
+
+The low-level object-oriented architecture, data representations, and service layer methods are split into two core blueprints:
+
+### A. Data Domain Entity Mapping
+This structural blueprint maps out the internal programmatic objects, properties, and relationships reflecting our core database schema:
+*   **Domain Models Architecture:** [View UML Class Diagram Part A — Domain ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/UML%20Class%20Diagram%20Part%20A%20%E2%80%94%20Domain.png)
+
+### B. Business Logic & Controller Layer Mapping
+This structural blueprint maps out the execution classes, API controllers, dependency injections, and background processor service methods:
+*   **Service Tier Architecture:** [View UML Class Diagram Part B — Services ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/UML%20Class%20Diagram%20Part%20B%20%E2%80%94%20Services.png)
 <div style="page-break-after: always;"></div>
 
 # Section 5 — Data Management
@@ -1002,7 +1062,6 @@ A separate user guide document shall be prepared for each of the following role 
 Each guide shall include step-by-step screenshots of all workflows the role is expected to perform, annotated with numbered callouts.
 
 ---
-<div style="page-break-after: always;"></div>
 
 ## 6.3 System Administrator Guide
 
@@ -1036,10 +1095,6 @@ Documentation shall include:
 
 The complete Data Dictionary covering all 45 entities, every table column, data types, constraints, descriptions, and example values constitutes a standalone Phase 1 deliverable document and is incorporated by reference into this SRS.
 
-> This is **Deliverable 2** as defined in the project assignment. It is maintained as a separate document and linked here by reference.
->
-
-## 6.5 Data Dictionary
 
 The global database layer is broken into 5 isolated structural schemas. Review the structural design, raw DBML code, and field indexes below:
 
@@ -1061,13 +1116,13 @@ The global database layer is broken into 5 isolated structural schemas. Review t
 ### 4. Maintenance & Transfer Domain Schema
 *   **Visual Data Model:** [Open High-Resolution Interactive ERD ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/ERD%20%E2%80%94%20Maintenance%20%26%20Transfer%20Domain.png)
 *   **Schema Definition Script:** [Raw DBML Code Script ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/schemas/ERD4.DBML)
-*   **Column Index Definitions:** [Comprehensive Field Data Dictionary ↗](https://github.com/YOUR_USERNAME/equipment-management-system/blob/main/docs/data-dictionaries/analytics-dictionary.md)
+*   **Column Index Definitions:** [Comprehensive Field Data Dictionary ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/data-dictionaries/data_dictionary-MAINTENANCETRANSFERDOMAIN.txt)
 
 ### 5. Analytics & Audit Domain Schema
 *   **Visual Data Model:** [Open High-Resolution Interactive ERD ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/diagrams/ERD%20%E2%80%94%20Analytics%20%26%20Audit%20Domain.png)
 *   **Schema Definition Script:** [Raw DBML Code Script ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/schemas/ERD5.DBML)
-*   **Column Index Definitions:** [Comprehensive Field Data Dictionary ↗](https://github.com/YOUR_USERNAME/equipment-management-system/blob/main/docs/data-dictionaries/security-dictionary.md)
-
+*   **Column Index Definitions:** [Comprehensive Field Data Dictionary ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/data-dictionaries/data_dictionary-ANALYTICSANDAUDITDOMAIN.txt)
+___
 <div style="page-break-after: always;"></div>
 
 # Section 7 — Testing Requirements
@@ -1226,6 +1281,7 @@ The system correctly enforces all five critical business rule blocks — each ve
 RBAC is enforced such that a logged-in Workshop Mechanic user receives HTTP 403 responses when attempting to access financial data endpoints, transfer approval endpoints, and executive dashboard data endpoints — verified by the RBAC boundary test (TR-ST-001).
 
 ---
+<div style="page-break-after: always;"></div>
 
 ## 8.3 Dashboard Criteria
 
@@ -1562,3 +1618,11 @@ Deliver live presentation and system demonstration to the three mentors. Effort:
 | Phase 3 | 6–7 | Analytics Dashboard | Dashboard KPIs accurate and performant |
 | Phase 4 | 8–10 | AI Model Integration | ML models meet minimum F1/R² criteria |
 | Phase 5 | 11–12 | UAT and Presentation | UAT passed, final presentation delivered |
+
+___
+
+# 10. Appendix: UI Wireframe Blueprints
+
+The responsive web panels, mobile-optimized driver screens, and telemetry dashboard maps can be reviewed via our interactive asset canvas:
+
+**[Project UI Wireframe file ↗](https://github.com/sncs1311/next-gen-ems/blob/main/docs/ui-wireframe/index.html)**
