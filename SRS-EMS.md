@@ -35,15 +35,15 @@
 | **Field** | **Detail** |
 | --- | --- |
 | Document Title | Software Requirements Specification — EMS v1.0 |
-| Document ID | EMS-SRS-2024-001 |
+| Document ID | EMS-SRS-2026-001 |
 | Project Title | Next-Gen Equipment Management & Predictive Analytics System |
 | Organization | Heavy Industrial Construction Company — Oil & Gas / Refinery / Infrastructure Division |
-| Prepared By | Software Engineering & Data Science Intern |
+| Prepared By | Surya Narayan C Shenoy |
 | Reviewed By | Chandirasekharan, Santhosh Mohanan, Arun Dev |
 | Document Version | 1.0 DRAFT |
 | Status | Pending Mentor Sign-Off |
-| Created Date | Week 1 — Internship Commencement |
-| Last Revised | Week 1 — Internship Commencement |
+| Created Date | 01 - 07 - 2026 |
+| Last Revised | 06 - 07 - 2026 |
 | Classification | Internal Confidential |
 
 ---
