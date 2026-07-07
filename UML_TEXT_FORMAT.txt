@@ -1,0 +1,166 @@
+## 2.1.1 System Use Case Specifications by Actor
+
+### 1. 👤 EXECUTIVE
+*   **Core Tasks:**
+    *   Login to System
+    *   View Executive Dashboard
+    *   View Fleet Utilization Chart
+    *   View MTBF and MTTR Trend
+    *   View TCO per Asset
+    *   View Fuel Consumption Heatmap
+
+---
+
+### 2. 👤 FLEET MANAGER
+*   **Core Tasks:**
+    *   Login to System
+    *   Register New Asset
+    *   Edit Asset Record
+    *   Manage Gulf Registration
+    *   Manage Insurance Policy
+    *   Manage Purchase Record
+    *   Manage Equipment Certification
+    *   Initiate Asset Write-Off
+    *   Search and Filter Asset List
+    *   Register Driver
+    *   Renew Driver License
+    *   Assign Driver to Asset
+    *   Override High-Risk Driver Assignment *(Triggers conditional system rule extension)*
+    *   Review Fuel Anomaly
+    *   Review Transfer Approval Queue
+    *   Approve Transfer Request *(Triggers conditional system rule inclusion)*
+    *   Reject Transfer Request
+    *   Dispatch Asset — Gate Pass Entry *(Triggers conditional system rule inclusion)*
+    *   Assign HSE Investigator
+    *   Register New Project
+    *   Assign Site Engineers to Project
+    *   Update Project Status
+    *   View Executive Dashboard
+    *   View Fleet Utilization Chart
+    *   View MTBF and MTTR Trend
+    *   View TCO per Asset
+    *   View Fuel Consumption Heatmap
+    *   View Maintenance Cost Trend
+    *   View Expiry Alert Panel
+    *   View Assets Due for Service
+    *   View Predictive Maintenance Scores
+    *   View Fuel Forecast per Site
+    *   View Driver Risk Rankings
+    *   View Replacement Alerts
+    *   View Model Evaluation Reports
+    *   Acknowledge System Alert
+
+---
+
+### 3. 👤 SITE ENGINEER / PROJECT MANAGER
+*   **Core Tasks:**
+    *   Login to System
+    *   View Asset Detail
+    *   Upload Asset Documents
+    *   Search and Filter Asset List
+    *   View Driver Profile
+    *   Log Fuel Transaction *(Triggers conditional system rule inclusion)*
+    *   View Fuel History per Asset
+    *   Manage Site Fuel Tank
+    *   Record Fuel Delivery
+    *   View Fuel Reconciliation Report
+    *   Report Breakdown
+    *   View Maintenance Schedule
+    *   Submit Transfer Request
+    *   Complete Pre-Departure Inspection
+    *   Confirm Asset Arrival *(Triggers conditional system rule inclusion)*
+    *   Complete Post-Arrival Inspection
+    *   View Transfer History
+    *   File Incident Report
+    *   View Project Equipment Summary
+    *   Manage Site Fuel Tanks
+    *   Set Activity Intensity for Fuel Forecast
+
+---
+
+### 4. 👤 WORKSHOP MECHANIC
+*   **Core Tasks:**
+    *   Login to System
+    *   View Asset Detail
+    *   Report Breakdown
+    *   Create Job Card *(Triggers conditional system rule inclusion)*
+    *   Add Parts to Job Card *(Triggers conditional system rule inclusion)*
+    *   Log Labor Hours
+    *   Update Job Card Status
+    *   View Maintenance Schedule
+    *   View Asset Maintenance History
+
+---
+
+### 5. 👤 WORKSHOP SUPERVISOR
+*   **Core Tasks:**
+    *   Login to System
+    *   View Asset Detail
+    *   Create Job Card
+    *   Add Parts to Job Card
+    *   Log Labor Hours
+    *   Update Job Card Status
+    *   Close Job Card — Supervisor Approval *(Triggers conditional system rule inclusion and extension)*
+    *   Record Repair Warranty
+    *   View Maintenance Schedule
+    *   View Asset Maintenance History
+    *   View Assets Due for Service
+
+---
+
+### 6. 👤 HSE OFFICER
+*   **Core Tasks:**
+    *   Login to System
+    *   View Asset Detail
+    *   File Incident Report *(Triggers conditional system rule extension)*
+    *   Record Root Cause and Corrective Action
+    *   Enter Police Report Number
+    *   Close Incident Report *(Triggers conditional system rule inclusion)*
+    *   View Incident Analytics
+    *   View Driver Risk Rankings
+
+---
+
+### 7. 👤 FINANCE USER
+*   **Core Tasks:**
+    *   Login to System
+    *   View Asset Detail
+    *   Manage Insurance Policy
+    *   Manage Purchase Record
+    *   View TCO per Asset
+    *   View Replacement Alerts
+
+---
+
+### 8. 👤 SYSTEM ADMIN
+*   **Core Tasks:**
+    *   Login to System
+    *   Logout
+    *   Change Password
+    *   Register New Asset
+    *   Register Driver
+    *   Manage User Accounts
+    *   Assign Roles to Users
+    *   Configure System Thresholds
+    *   Manage Lookup Tables
+    *   View Audit Log
+    *   Acknowledge System Alert
+
+---
+
+## 2.1.2 Conditional System Business Rules (Include / Extend Contracts)
+
+### Standard Inclusions (`<<include>>`)
+*   **Log Fuel Transaction** $\rightarrow$ *Requires:* `View Asset Detail` first.
+*   **Create Job Card** $\rightarrow$ *Requires:* An active `Breakdown Report` to exist.
+*   **Add Parts to Job Card** $\rightarrow$ *Requires:* `Job Card` status to be active and open.
+*   **Close Job Card** $\rightarrow$ *Requires:* Mechanics to `Update Job Card Status` first.
+*   **Approve Transfer** $\rightarrow$ *Requires:* A backend `Compliance Check` to pass successfully.
+*   **Dispatch Asset** $\rightarrow$ *Requires:* A `Pre-Departure Inspection` to be completed.
+*   **Confirm Arrival** $\rightarrow$ *Requires:* A `Post-Arrival Inspection` to be verified.
+*   **Close Incident** $\rightarrow$ *Requires:* The investigator to have `Root Cause` details recorded first.
+
+### Functional Extensions (`<<extend>>`)
+*   **Record Repair Warranty** $\rightarrow$ *Extends:* `Close Job Card — Supervisor Approval` *(Triggered optionally upon contract completion)*.
+*   **Override High-Risk Driver Assignment** $\rightarrow$ *Extends:* `Assign Driver to Asset` *(Triggered optionally to bypass risk compliance warning panels)*.
+*   **Enter Police Report Number** $\rightarrow$ *Extends:* `File Incident Report` *(Triggered optionally for on-road vehicle accidents)*.

@@ -1,0 +1,160 @@
+## 4.9 System Service Layer Models (Backend Class Reference)
+
+The functional core of the platform is built as isolated, state-free backend service micro-components executing over the database schema. This section details the method exposures, structural properties, and dependency mapping rules defining the operational layer.
+
+---
+
+### 🗂️ 1. Asset Registry Component (`AssetService`)
+Handles the lifecycle, compliance validations, and administrative metrics updates for physical heavy machinery and commercial fleets.
+
+*   **Internal Dependencies:** `PrismaClient` (db), `AlertService`, `AuditService`
+*   **Method Interfaces:**
+    *   `+createAsset(data, userId) Asset`: Onboards a fresh asset entity into the tenant database.
+    *   `+updateAsset(id, data, userId) Asset`: Modifies baseline metadata configuration parameters.
+    *   `+softDeleteAsset(id, userId) void`: Archives an active asset record without breaking historic relational keys.
+    *   `+getAssetById(id, role) Asset`: Fetches granular data fields scoped safely to the user's role-based access.
+    *   `+searchAssets(filters) Asset[]`: Executes complex column filtration (e.g., status, site capacity limits).
+    *   `+initiateWriteOff(id, data, userId) void`: Starts physical equipment retirement evaluations.
+    *   `+validateAssetForTransfer(assetId) ComplianceResult`: Validates cross-site safety compliance parameters.
+    *   `+updateCumulativeMeter(assetId, reading) void`: Increments total operational hours based on machinery sensors.
+
+---
+
+### ⛽ 2. Fuel Log & Telemetry Component (`FuelService`)
+Validates refueling streams, calculates system combustion metrics, and checks for operational consumption anomalies.
+
+*   **Internal Dependencies:** `PrismaClient` (db), `AlertService`, `AuditService`
+*   **Method Interfaces:**
+    *   `+createFuelLog(data, userId) FuelLog`: Registers a line voucher transaction item.
+    *   `+validateTankCapacity(assetId, quantity) Boolean`: Assures refueled value boundaries don't exceed nominal hardware volumes.
+    *   `+validateMeterProgression(assetId, reading) Boolean`: Enforces chronological, strictly increasing hour-meter values.
+    *   `+calculateEfficiency(currentLog, previousLog) Decimal`: Computes instantaneous asset work metrics.
+    *   `+computeRollingAverage(assetId, days) Decimal`: Provides dynamic engine baseline consumption markers.
+    *   `+detectAnomaly(fuelLogId, threshold) FuelAnomaly`: Evaluates logs for siphon-theft or data-entry errors.
+    *   `+getFuelHistoryForAsset(assetId, filters) FuelLog[]`: Generates localized asset performance sheets.
+    *   `+getFuelReconciliation(projectId, period) ReconciliationReport`: Reconciles actual machine updates against active site storage tank dips.
+    *   `+recordTankDelivery(data, userId) SiteFuelDelivery`: Registers bulk storage tank fill events.
+
+---
+
+### 🔧 3. Maintenance Engineering Component (`MaintenanceService`)
+Tracks asset downtime parameters, coordinates breakdown tickets, and schedules physical job card executions.
+
+*   **Internal Dependencies:** `PrismaClient` (db), `AlertService`, `AuditService`
+*   **Method Interfaces:**
+    *   `+createJobCard(data, userId) MaintenanceJobCard`: Launches an active service mechanic ledger.
+    *   `+addPartToJobCard(jobCardId, partData) JobCardPart`: Allocates inventory stock items to repair tasks.
+    *   `+addLaborToJobCard(jobCardId, laborData) JobCardLabor`: Logs team labor hours for payroll calculation.
+    *   `+updateJobCardStatus(id, status, userId) void`: Manages transitions (`Open` $\rightarrow$ `In Progress` $\rightarrow$ `Awaiting Parts`).
+    *   `+closeJobCard(id, supervisorId, remarks) void`: Validates work completion via supervisor access sign-offs.
+    *   `+recalculateNextServiceDue(assetId, serviceType) void`: Schedules future preventative dates based on meter cycles.
+    *   `+checkOverdueSchedules() PreventiveMaintenanceSchedule[]`: Scans for missed calendar maintenance windows.
+    *   `+createBreakdownLog(data, userId) BreakdownLog`: Changes machinery status to offline when a breakdown occurs.
+    *   `+checkRepeatFailure(assetId, faultCategory) Boolean`: Flags chronic parts issues or poor repair quality.
+    *   `+checkWarrantyApplicability(assetId, faultCategory) Boolean`: Identifies parts failures covered under current vendor terms.
+    *   `+blockTransferIfUnderMaintenance(assetId) Boolean`: Rejects external transport if an asset is actively down for repairs.
+
+---
+
+### 🚛 4. Logistics & Transfer Component (`TransferService`)
+Governs transit rules, gate pass distributions, and pre/post-relocation inspection tracking across different site boundaries.
+
+*   **Internal Dependencies:** `PrismaClient` (db), `AlertService`, `AuditService`, `MaintenanceService` (Calls `blockTransferIfUnderMaintenance`)
+*   **Method Interfaces:**
+    *   `+submitTransferRequest(data, userId) TransferRequest`: Submits a cross-border asset movement proposal.
+    *   `+checkComplianceForTransfer(assetId, driverId) ComplianceResult`: Runs automated background safety checks before transport.
+    *   `+approveTransfer(id, approverId, remarks) void`: Grants official permission to proceed with transport.
+    *   `+rejectTransfer(id, approverId, reason) void`: Refuses transport requests and logs operational reasons.
+    *   `+dispatchTransfer(id, gatePassData, userId) void`: Generates a legal tracking gate pass to authorize transport.
+    *   `+confirmArrival(id, receiverId) void`: Concludes the transport record once the asset is received at the target site.
+    *   `+updateAssetAssignment(assetId, fromSite, toSite) void`: Updates site custody fields in the database.
+    *   `+createInspectionRecord(transferId, type, data) TransferInspection`: Records physical condition state evaluations.
+    *   `+checkTransitDamage(preInspection, postInspection) Boolean`: Flags condition discrepancies that occurred during transit.
+    *   `+appendStateHistory(transferId, toStatus, userId) void`: Updates history lines for administrative audit lookups.
+
+---
+
+### 🆔 5. Operator Management Component (`DriverService`)
+Manages operator certifications, driver logs, safety evaluations, and machinery operating permits.
+
+*   **Internal Dependencies:** `PrismaClient` (db), `AlertService`, `AuditService`
+*   **Method Interfaces:**
+    *   `+registerDriver(data, userId) Driver`: Adds an operator profile to system roles.
+    *   `+updateDriverProfile(id, data, userId) void`: Updates contact info or company identification tags.
+    *   `+renewLicense(driverId, licenseData) DriverLicense`: Updates regional driving permit dates.
+    *   `+addTrainingRecord(driverId, trainingData) DriverTrainingRecord`: Logs safety and machinery training items.
+    *   `+assignDriverToAsset(driverId, assetId, shift, userId) AssetOperatorAssignment`: Binds a specific operator to a machine shift.
+    *   `+validateLicenseEligibility(driverId, assetSubTypeId) Boolean`: Blocks drivers if a machine requires an advanced class license.
+    *   `+checkHighRiskAssignment(driverId, assetSubTypeId) HighRiskResult`: Warns managers if assigning low-rated operators to risky machines.
+    *   `+getDriverBehaviorScore(driverId) DriverBehaviorScore`: Computes overall driver scores using safety logs and incident reports.
+
+---
+
+### ⚠️ 6. HSE Incident Analytics Component (`IncidentService`)
+Documents site accidents, logs damage assessments, runs root cause paths, and triggers risk rating changes.
+
+*   **Internal Dependencies:** `PrismaClient` (db), `AlertService`, `AuditService`, `DriverService` (Calls `applyDriverScoreImpact`)
+*   **Method Interfaces:**
+    *   `+createIncidentReport(data, userId) IncidentReport`: Logs on-site machine collisions or damage items.
+    *   `+assignHSEOfficer(incidentId, officerId) void`: Delegates investigation oversight to a local safety officer.
+    *   `+recordRootCause(incidentId, data) void`: Files mandatory structural engineering investigation reports.
+    *   `+closeIncidentReport(incidentId, closerId) void`: Finalizes open safety cases after corrective steps are taken.
+    *   `+applyDriverScoreImpact(incidentId) void`: Lowers operator scores if driver error caused the accident.
+    *   `+getSeverityScore(incidentType) Int`: Scores safety impacts for insurance evaluation.
+    *   `+getIncidentAnalytics(filters) IncidentAnalytics`: Feeds metrics onto the executive safety chart.
+
+---
+
+### 📊 7. Intelligence & Analytics Component (`AnalyticsService`)
+Generates calculated system metrics, fleet utilization patterns, cost timelines, and site snapshots.
+
+*   **Internal Dependencies:** `PrismaClient` (db)
+*   **Method Interfaces:**
+    *   `+computeAssetKPISnapshot(assetId, period) AssetKPISnapshot`: Aggregates historical metrics for a specific machine.
+    *   `+computeFleetUtilizationRate(filters) UtilizationReport`: Tracks total machine working hours against ideal site capacities.
+    *   `+computeMTBF(assetId, period) Decimal`: Calculates Mean Time Between Failures to judge durability.
+    *   `+computeMTTR(assetId, period) Decimal`: Calculates Mean Time To Repair to judge mechanic efficiency.
+    *   `+computeTCO(assetId, period) Decimal`: Combines purchase cost, maintenance logs, and fuel use into Total Cost of Ownership.
+    *   `+getFuelHeatmapData(period) HeatmapData[]`: Identifies sites with anomalous consumption peaks.
+    *   `+getMaintenanceCostTrend(period) CostTrendData[]`: Graphs tracking budget changes over time.
+    *   `+getTopTCOAssets(limit) Asset[]`: Pinpoints expensive or inefficient assets due for replacement.
+
+---
+
+### 🤖 8. AI Pipeline & Automation Engine (`BatchOrchestratorService` & `MLClientService`)
+Runs automated backend tasks, builds predictive metrics profiles, and calls machine learning inference microservices.
+
+*   **Orchestrator Dependencies:** `MLClientService`, `AnalyticsService`, `AlertService`, `PrismaClient`
+*   **Client Dependencies:** Machine Learning Base URL Endpoint
+*   **Method Interfaces (BatchOrchestratorService):**
+    *   `+runNightlyBatch() void`: Coordinates automatic data processing at midnight.
+    *   `+runPredictiveMaintenance() void`: Analyzes telemetry data to estimate Remaining Useful Life (RUL).
+    *   `+runFuelForecasting() void`: Forecasts fuel needs for upcoming construction projects.
+    *   `+runDriverBehaviorScoring() void`: Updates risk profiles for all system operators.
+    *   `+runKPISnapshots() void`: Stores cached data tables to speed up daily dashboard rendering.
+    *   `+runReplacementAlertEngine() void`: Flags assets that are more expensive to repair than replace.
+    *   `+runExpiryAlertChecker() void`: Flags upcoming permit, certification, or policy expirations.
+    *   `+extractAssetFeatureVectors() FeatureVector[]`: Formats raw telemetry data into structured ML inputs.
+    *   `+extractSiteFeatureVectors() FeatureVector[]`: Formats site history data into structured ML inputs.
+    *   `+extractDriverFeatureVectors() FeatureVector[]`: Formats safety history data into structured ML inputs.
+*   **Method Interfaces (MLClientService):**
+    *   `+predictMaintenance(featureVectors) ScoreResult[]`: Returns predicted breakdown probabilities from the AI engine.
+    *   `+forecastFuel(siteVectors) ForecastResult[]`: Predicts future fuel needs based on planned project intensity.
+    *   `+scoreDrivers(driverVectors) ScoreResult[]`: Returns data-driven driver risk tiers.
+    *   `+healthCheck() Boolean`: Confirms connection status with the Python ML environment.
+
+---
+
+### 🛡️ 9. Platform Security Component (`AuthService` & `JWTService`)
+Manages cryptographic password protection, session token rules, and secure multi-tenant isolation barriers.
+
+*   **Auth Dependencies:** `PrismaClient`, `JWTService`
+*   **JWT Dependencies:** Cryptographic Signature Tokens
+*   **Method Interfaces (AuthService):**
+    *   `+login(email, password) TokenPair`: Issues active access and refresh tokens.
+    *   `+logout(refreshToken) void`: Revokes current tokens and ends active user sessions.
+    *   `+refreshAccessToken(refreshToken) String`: Extends valid sessions without requiring a password re-entry.
+    *   `+verifyAccessToken(token) JWTPayload`: Decodes and confirms user permissions for incoming API calls.
+*   **Method Interfaces (JWTService):**
+    *   `+signAccessToken(payload) String` / `+signRefreshToken(payload) String`: Generates cryptographically secure JWT strings.
+    *   `+invalidateRefreshToken(jti) void`: Instantly revokes session tokens to block stolen credentials.
