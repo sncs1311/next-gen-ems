@@ -1020,7 +1020,7 @@ The following validation rules are enforced at both the **application layer** (A
 
 The system will be seeded with the following data to support development, testing, and AI model training:
 
-- **50 baseline assets** across 5 categories with realistic engine serial numbers, chassis numbers, purchase dates (2018–2023), and OEM-accurate service intervals
+- **50 baseline assets** across 5 categories with realistic engine serial numbers, chassis numbers, purchase dates (2020–2025), and OEM-accurate service intervals
 - **5 project records** representing active construction sites across two Gulf countries
 - **20 driver records** with varied license categories, nationalities, and experience levels
 - **12 months of synthetic operational data** programmatically generated:
