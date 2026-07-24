@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --navy-900: #0F1923;
+    --navy-800: #1C2B3A;
+    --navy-700: #243447;
+    --amber: #F59E0B;
+    --green: #10B981;
+    --red: #EF4444;
+    --bg: #F0F4F8;
+    --text: #1C2B3A;
+    --text-muted: #64748B;
+    --border: #E2E8F0;
+  }
+
+  body {
+    @apply bg-slate-50 text-navy-800 font-sans;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Signature element: asset/job codes always render in mono with amber underline */
+  .asset-code {
+    font-family: 'JetBrains Mono', monospace;
+    @apply text-sm font-medium border-b border-amber-400 pb-px;
+  }
+}
+
+@layer components {
+  .sidebar {
+    @apply fixed top-0 left-0 h-full bg-[#0F1923] text-white flex flex-col z-40;
+    width: 240px;
+  }
+
+  .main-content {
+    @apply min-h-screen bg-slate-50;
+    margin-left: 240px;
+  }
+
+  .card {
+    @apply bg-white rounded-lg border border-slate-200 shadow-sm;
+  }
+
+  .stat-card {
+    @apply card p-5;
+  }
+
+  .btn-primary {
+    @apply bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded-md text-sm transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-white hover:bg-slate-50 text-navy-800 font-medium px-4 py-2 rounded-md text-sm border border-slate-200 transition-colors;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-md text-sm transition-colors;
+  }
+
+  .badge-active    { @apply inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800; }
+  .badge-idle      { @apply inline-flex px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700; }
+  .badge-maintenance { @apply inline-flex px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800; }
+  .badge-transit   { @apply inline-flex px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800; }
+  .badge-decommissioned { @apply inline-flex px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800; }
+
+  .badge-low  { @apply inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800; }
+  .badge-med  { @apply inline-flex px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800; }
+  .badge-high { @apply inline-flex px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800; }
+
+  .table-base {
+    @apply w-full text-sm;
+  }
+  .table-base thead { @apply bg-slate-50 text-slate-500 uppercase text-xs tracking-wide; }
+  .table-base th   { @apply px-4 py-3 text-left font-medium; }
+  .table-base td   { @apply px-4 py-3 border-t border-slate-100; }
+  .table-base tr:hover td { @apply bg-slate-50; }
+
+  .form-label { @apply block text-sm font-medium text-slate-700 mb-1; }
+  .form-input { @apply w-full border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent; }
+  .form-select { @apply form-input bg-white; }
+  .form-error { @apply text-red-500 text-xs mt-1; }
+
+  .page-header { @apply flex items-center justify-between mb-6; }
+  .page-title  { @apply text-2xl font-bold text-navy-900; }
+}
