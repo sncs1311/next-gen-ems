@@ -22,7 +22,7 @@ export default function AdminPage() {
               <div className="font-semibold text-gray-900">{item.label}</div>
               {item.ready
                 ? <span className="badge-active text-xs">Available</span>
-                : <span className="badge-idle text-xs"></span>}
+                : <span className="badge-idle text-xs">Phase 5</span>}
             </div>
             <div className="text-sm text-gray-400">{item.desc}</div>
           </button>
