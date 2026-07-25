@@ -1,4 +1,4 @@
-# EMS Backend — Phase 2 (in progress)
+# EMS Backend — Phase 2 (Done)
 
 ## Setup (run this locally — Prisma needs real internet access to fetch its engine binaries)
 
