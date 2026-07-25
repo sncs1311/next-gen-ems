@@ -13,7 +13,7 @@ async function main() {
     }
   }
   console.log('[startup] Starting server...');
-  require('./src/server.js');
+  require('../src/server.js');
 }
 
 main();
