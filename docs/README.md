@@ -31,7 +31,8 @@ equipment-management-system/
 │   │   ├── StateMachines/    # Component & Voucher Lifecycle Transitions
 │   │   └── UML/              # Use Cases and Domain Class Schemas
 │   ├── schemas/              # Relational Database Definition Scripts (.dbml / .sql)
-│   └── data-dictionaries/    # Detailed Indexed Column Mappings (.md)
-├── src/                      # Future Application Code Layers (API, Frontend, ML)
-├── README.md                 # Project Overview Dashboard
-└── SRS-EMS.md                # SRS File
+│   ├── data-dictionaries/    # Detailed Indexed Column Mappings (.md)
+│   ├── SRS-EMS.md            # SRS File
+│   └── README.md             # Project Overview Dashboard
+├── frontend
+└── backend
