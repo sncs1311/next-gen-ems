@@ -192,7 +192,8 @@ async function getFuelReconciliation(tankId, periodStart, periodEnd) {
 }
 
 async function getFuelHistoryForAsset(assetId, filters = {}) {
-  const { page = 1, pageSize = 50 } = filters;
+  const page = parseInt(filters.page, 10) || 1;
+  const pageSize = parseInt(filters.pageSize, 10) || 50;
   return prisma.fuelLog.findMany({
     where: { assetId },
     orderBy: { loggedAt: 'desc' },

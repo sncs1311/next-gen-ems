@@ -11,6 +11,7 @@ const fuelRoutes = require('./modules/fuel/fuel.routes');
 const maintenanceRoutes = require('./modules/maintenance/maintenance.routes');
 const transferRoutes = require('./modules/transfers/transfer.routes');
 const incidentRoutes = require('./modules/incidents/incident.routes');
+const adminRoutes = require('./modules/admin/admin.routes');
 const { errorHandler } = require('./middleware/error');
 
 const app = express();
@@ -25,9 +26,7 @@ if (process.env.NODE_ENV !== 'test') {
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Route modules per SRS 4.3 — one module per functional domain.
-// Built (Phase 2, all core operational modules): auth, assets, drivers, projects,
-// fuel, maintenance, transfers, incidents. Remaining: Analytics Dashboard,
-// Intelligence Layer (Phase 3/4 scope), System Admin.
+// All 9 modules built (Phase 2 complete):
 app.use('/api/auth', authRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/drivers', driverRoutes);
@@ -36,6 +35,7 @@ app.use('/api/fuel', fuelRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/transfers', transferRoutes);
 app.use('/api/incidents', incidentRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);

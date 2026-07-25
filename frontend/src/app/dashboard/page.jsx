@@ -62,7 +62,7 @@ export default function DashboardPage() {
         <div className="card">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="font-semibold text-navy-800">Assets Under Maintenance</h2>
-            <a href="/maintenance" className="text-amber-500 text-sm hover:underline">View all →</a>
+            <a href="/maintenance" className="text-gray-900 text-sm hover:underline">View all →</a>
           </div>
           {alerts.isLoading ? <LoadingSpinner /> : (
             <div className="divide-y divide-slate-100">
@@ -96,7 +96,7 @@ export default function DashboardPage() {
               { label: 'File Incident', href: '/incidents/new', icon: '⚡' },
             ].map((a) => (
               <a key={a.href} href={a.href}
-                className="flex items-center gap-2 px-4 py-3 rounded-lg border border-slate-200 hover:border-amber-300 hover:bg-amber-50 transition-colors text-sm font-medium text-navy-800">
+                className="flex items-center gap-2 px-4 py-3 rounded-lg border border-slate-200 hover:border-gray-300 hover:bg-gray-50 transition-colors text-sm font-medium text-navy-800">
                 <span>{a.icon}</span>{a.label}
               </a>
             ))}

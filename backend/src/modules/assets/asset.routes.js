@@ -6,12 +6,11 @@ const { validate } = require('../../middleware/validate');
 const { ROLES } = require('../../config/roles');
 
 const router = express.Router();
-
-router.use(authenticate); // FR-SA-002 — every endpoint requires a valid JWT
+router.use(authenticate);
 
 router.post(
   '/',
-  requireRole(ROLES.FLEET_MGR, ROLES.SYS_ADMIN), // FR-AR-001
+  requireRole(ROLES.FLEET_MGR, ROLES.SYS_ADMIN),
   [
     body('subTypeId').isUUID(),
     body('make').isString().notEmpty(),
@@ -25,19 +24,29 @@ router.post(
 
 router.get(
   '/',
-  [
-    query('page').optional().isInt({ min: 1 }),
-    query('pageSize').optional().isInt({ min: 1, max: 200 }),
-  ],
+  [query('page').optional().isInt({ min: 1 }), query('pageSize').optional().isInt({ min: 1, max: 200 })],
   validate,
   controller.list
-); // FR-AR-007 — all authenticated roles may search/filter
+);
 
-router.get('/:id', [param('id').isUUID()], validate, controller.getById); // FR-AR-008
+// /subtypes MUST come before /:id — otherwise Express matches "subtypes" as an ID param
+router.get('/subtypes', async (req, res, next) => {
+  try {
+    const prisma = require('../../lib/prisma');
+    const data = await prisma.assetSubType.findMany({
+      where: { isActive: true },
+      include: { category: true },
+      orderBy: [{ category: { categoryName: 'asc' } }, { subTypeName: 'asc' }],
+    });
+    res.json(data);
+  } catch (err) { next(err); }
+});
+
+router.get('/:id', [param('id').isUUID()], validate, controller.getById);
 
 router.patch(
   '/:id/status',
-  requireRole(ROLES.FLEET_MGR, ROLES.SYS_ADMIN), // FR-AR-006
+  requireRole(ROLES.FLEET_MGR, ROLES.SYS_ADMIN),
   [param('id').isUUID(), body('status').isString().notEmpty()],
   validate,
   controller.updateStatus

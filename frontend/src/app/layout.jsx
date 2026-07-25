@@ -2,7 +2,7 @@ import './globals.css';
 import Providers from '@/components/layout/Providers';
 
 export const metadata = {
-  title: 'EMS — Equipment Management System',
+  title: 'FleetCore — Equipment Management System',
   description: 'Next-Gen Equipment Management & Predictive Analytics',
 };
 

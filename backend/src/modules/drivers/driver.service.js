@@ -135,7 +135,9 @@ async function renewLicense(driverId, licenseData) {
 
 // FR-DR-007 — Driver Search and List View
 async function searchDrivers(filters) {
-  const { licenseCategory, riskCategory, q, page = 1, pageSize = 25 } = filters;
+  const { licenseCategory, riskCategory, q } = filters;
+  const page = parseInt(filters.page, 10) || 1;
+  const pageSize = parseInt(filters.pageSize, 10) || 25;
 
   const where = {
     isActive: true,

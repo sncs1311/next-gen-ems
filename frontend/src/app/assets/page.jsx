@@ -63,8 +63,7 @@ export default function AssetsPage() {
         {isLoading ? <LoadingSpinner /> : error ? <div className="p-4"><ErrorMessage message={error.message} /></div> : (
           <>
             {data?.results?.length === 0 ? (
-              <EmptyState title="No assets found" description="Try adjusting your filters or register a new asset."
-                action={CAN_CREATE.includes(user?.role) && <button className="btn-primary" onClick={() => router.push('/assets/new')}>Register first asset</button>} />
+              <EmptyState title="No assets found" description="Try adjusting your filters or register a new asset." />
             ) : (
               <table className="table-base">
                 <thead>
@@ -86,7 +85,7 @@ export default function AssetsPage() {
                       <td><StatusBadge status={asset.currentStatus} /></td>
                       <td className="text-slate-500">{asset.ownershipType}</td>
                       <td className="text-right">
-                        <button className="text-amber-500 hover:underline text-sm" onClick={(e) => { e.stopPropagation(); router.push(`/assets/${asset.id}`); }}>
+                        <button className="text-gray-900 hover:underline text-sm" onClick={(e) => { e.stopPropagation(); router.push(`/assets/${asset.id}`); }}>
                           View →
                         </button>
                       </td>

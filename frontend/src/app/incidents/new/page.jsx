@@ -45,14 +45,14 @@ export default function NewIncidentPage() {
 
           {needsThirdParty && (
             <div className="p-4 rounded-md bg-amber-50 border border-amber-200 space-y-3">
-              <p className="text-sm font-medium text-amber-800">Third-Party Details Required (FR-IM-002)</p>
+              <p className="text-sm font-medium text-yellow-800">Third-Party Details Required (FR-IM-002)</p>
               <div><label className="form-label">Third-Party Vehicle Plate</label>
                 <input className="form-input" value={form.thirdPartyVehiclePlate} onChange={(e) => set('thirdPartyVehiclePlate', e.target.value)} /></div>
             </div>
           )}
 
           <div className="flex items-center gap-3">
-            <input type="checkbox" id="injury" checked={form.personalInjuryOccurred} onChange={(e) => set('personalInjuryOccurred', e.target.checked)} className="w-4 h-4 accent-amber-500" />
+            <input type="checkbox" id="injury" checked={form.personalInjuryOccurred} onChange={(e) => set('personalInjuryOccurred', e.target.checked)} className="w-4 h-4 accent-gray-900" />
             <label htmlFor="injury" className="text-sm font-medium text-slate-700">Personal injury occurred</label>
           </div>
 

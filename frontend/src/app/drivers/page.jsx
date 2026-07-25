@@ -68,7 +68,7 @@ export default function DriversPage() {
                             {expiry ? expiry.toLocaleDateString() : '—'}{expired ? ' ⚠' : ''}
                           </td>
                           <td><RiskBadge risk={d.driverBehaviorScoreDriverId?.riskCategory ?? 'Low'} /></td>
-                          <td className="text-right"><button className="text-amber-500 hover:underline text-sm">View →</button></td>
+                          <td className="text-right"><button className="text-gray-900 hover:underline text-sm">View →</button></td>
                         </tr>
                       );
                     })}

@@ -3,32 +3,67 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
-import { LoadingSpinner, ErrorMessage, Pagination, EmptyState } from '@/components/ui';
+import { AssetCode, LoadingSpinner, ErrorMessage, EmptyState } from '@/components/ui';
 import api from '@/lib/api';
 
-export default function Page() {
+const STATUS_COLORS = {
+  Open: 'badge-active', 'In Progress': 'badge-transit', 'Parts Pending': 'badge-maintenance',
+  'Completed Pending Approval': 'badge-maintenance', Closed: 'badge-idle',
+};
+
+export default function MaintenancePage() {
   const router = useRouter();
-  const [pg, setPg] = useState(1);
+  const [assetId, setAssetId] = useState('');
+  const [searched, setSearched] = useState('');
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['maintenance', pg],
-    queryFn: async () => { const { data } = await api.get('/maintenance?page=' + pg); return data; },
-    retry: false,
+    queryKey: ['job-cards', searched],
+    queryFn: async () => { const { data } = await api.get(`/maintenance/job-cards/asset/${searched}`); return data; },
+    enabled: !!searched,
   });
-  const title = { projects:'Projects', fuel:'Fuel Logs', maintenance:'Maintenance', transfers:'Transfers', incidents:'Incidents' }['maintenance'];
-  const newHref = { projects:'/projects/new', fuel:'/fuel/new', maintenance:'/maintenance/job-cards/new', transfers:'/transfers/new', incidents:'/incidents/new' }['maintenance'];
+
   return (
     <AppShell>
       <div className="page-header">
-        <h1 className="page-title">{title}</h1>
-        <button className="btn-primary" onClick={() => router.push(newHref)}>+ New</button>
+        <h1 className="page-title">Maintenance</h1>
+        <div className="flex gap-2">
+          <button className="btn-secondary" onClick={() => router.push('/maintenance/breakdown/new')}>Report Breakdown</button>
+          <button className="btn-primary" onClick={() => router.push('/maintenance/job-cards/new')}>+ New Job Card</button>
+        </div>
       </div>
+
+      <div className="card mb-4 p-4 flex gap-3 items-end">
+        <div className="flex-1">
+          <label className="form-label">Asset ID</label>
+          <input className="form-input font-mono" placeholder="Paste asset UUID to view its job cards…"
+            value={assetId} onChange={(e) => setAssetId(e.target.value)} />
+        </div>
+        <button className="btn-primary" onClick={() => setSearched(assetId)}>Search</button>
+      </div>
+
       <div className="card">
-        {isLoading ? <LoadingSpinner />
-          : error ? <div className="p-4"><ErrorMessage message={error.message} /></div>
-          : !data?.results?.length ? <EmptyState title={"No " + title.toLowerCase() + " yet"} description="Records will appear here once created." />
-          : <div className="p-5 text-sm text-slate-500">{data.total} record(s) loaded. Full table view coming in next build.<br/><pre className="mt-2 text-xs overflow-auto max-h-96">{JSON.stringify(data.results.slice(0,3), null, 2)}</pre></div>
-        }
-        <Pagination page={pg} pageSize={25} total={data?.total ?? 0} onPage={setPg} />
+        {!searched ? (
+          <EmptyState title="Search by Asset" description="Enter an asset UUID above to view its job card history." />
+        ) : isLoading ? <LoadingSpinner />
+        : error ? <div className="p-4"><ErrorMessage message={error.message} /></div>
+        : !data?.length ? <EmptyState title="No job cards found" description="No maintenance records for this asset." action={<button className="btn-primary" onClick={() => router.push('/maintenance/job-cards/new')}>Create first job card</button>} />
+        : (
+          <table className="table-base">
+            <thead><tr><th>Job Card No.</th><th>Type</th><th>Fault / Service</th><th>Opened</th><th>Status</th><th>Total Cost</th></tr></thead>
+            <tbody>
+              {data.map((jc) => (
+                <tr key={jc.id}>
+                  <td><AssetCode code={jc.jobCardNumber} /></td>
+                  <td className="text-slate-500">{jc.jobCardType}</td>
+                  <td className="font-medium">{jc.faultDescription || jc.serviceType || '—'}</td>
+                  <td className="text-slate-500">{new Date(jc.openedAt).toLocaleDateString()}</td>
+                  <td><span className={STATUS_COLORS[jc.status] || 'badge-idle'}>{jc.status}</span></td>
+                  <td className="text-slate-500">{jc.totalCost ? Number(jc.totalCost).toFixed(2) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </AppShell>
   );

@@ -28,7 +28,7 @@ export function StatCard({ label, value, sub, accent }) {
   return (
     <div className="stat-card">
       <div className="text-slate-500 text-xs font-medium uppercase tracking-wide mb-2">{label}</div>
-      <div className={`text-3xl font-bold ${accent ? 'text-amber-500' : 'text-navy-900'}`}>{value}</div>
+      <div className={`text-3xl font-bold ${accent ? 'text-gray-900' : 'text-navy-900'}`}>{value}</div>
       {sub && <div className="text-slate-400 text-xs mt-1">{sub}</div>}
     </div>
   );
@@ -37,7 +37,7 @@ export function StatCard({ label, value, sub, accent }) {
 export function LoadingSpinner() {
   return (
     <div className="flex items-center justify-center py-16">
-      <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }

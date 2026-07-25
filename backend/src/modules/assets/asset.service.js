@@ -62,7 +62,9 @@ async function createAsset(data, userId) {
 
 // FR-AR-007 — Search and Filter Asset List
 async function searchAssets(filters) {
-  const { status, categoryId, subTypeId, siteId, ownershipType, q, page = 1, pageSize = 25 } = filters;
+  const { status, categoryId, subTypeId, siteId, ownershipType, q } = filters;
+  const page = parseInt(filters.page, 10) || 1;
+  const pageSize = parseInt(filters.pageSize, 10) || 25;
 
   const where = {
     isArchived: false,

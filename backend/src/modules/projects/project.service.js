@@ -131,7 +131,9 @@ async function updateProjectStatus(projectId, newStatus, confirmedByFleetManager
 }
 
 async function searchProjects(filters) {
-  const { status, country, q, page = 1, pageSize = 25 } = filters;
+  const { status, country, q } = filters;
+  const page = parseInt(filters.page, 10) || 1;
+  const pageSize = parseInt(filters.pageSize, 10) || 25;
   const where = {
     isArchived: false,
     ...(status && { projectStatus: status }),

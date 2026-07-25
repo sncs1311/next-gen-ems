@@ -238,7 +238,9 @@ async function getIncidentById(id) {
 }
 
 async function listIncidents(filters = {}) {
-  const { status, incidentType, page = 1, pageSize = 25 } = filters;
+  const { status, incidentType } = filters;
+  const page = parseInt(filters.page, 10) || 1;
+  const pageSize = parseInt(filters.pageSize, 10) || 25;
   const where = {
     ...(status && { incidentStatus: status }),
     ...(incidentType && { incidentType }),
