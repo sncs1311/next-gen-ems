@@ -1,9 +1,9 @@
 'use client';
+// frontend/src/components/layout/Sidebar.jsx
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
-// SVG icons — no emojis, consistent stroke-based style
 const ICONS = {
   dashboard: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
@@ -53,6 +53,12 @@ const ICONS = {
       <path d="M10 8v4M10 14.5v.5"/>
     </svg>
   ),
+  analytics: (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+      <path d="M2 16l4-6 4 3 4-8 4 4"/>
+      <path d="M2 18h16"/>
+    </svg>
+  ),
   admin: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
       <circle cx="10" cy="10" r="2.5"/>
@@ -70,6 +76,7 @@ const NAV = [
   { href: '/maintenance', label: 'Maintenance',  icon: 'maintenance', roles: ['FLEET_MGR','MECH','MECH_SUP','SYS_ADMIN'] },
   { href: '/transfers',   label: 'Transfers',    icon: 'transfers',   roles: ['FLEET_MGR','SITE_ENG','PM','SYS_ADMIN'] },
   { href: '/incidents',   label: 'Incidents',    icon: 'incidents',   roles: ['FLEET_MGR','SITE_ENG','HSE','SYS_ADMIN'] },
+  { href: '/analytics',   label: 'Analytics',    icon: 'analytics',   roles: ['EXEC','FLEET_MGR','FINANCE','SYS_ADMIN'] },
   { href: '/admin',       label: 'Admin',        icon: 'admin',       roles: ['SYS_ADMIN'] },
 ];
 
@@ -80,13 +87,11 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      {/* Brand — wordmark only, no icon box */}
       <div className="px-5 py-5 border-b border-slate-700">
         <div className="text-white font-bold text-base tracking-tight leading-tight">FleetCore</div>
         <div className="text-slate-500 text-xs leading-tight mt-0.5">Equipment Management System</div>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 py-3 overflow-y-auto">
         {visible.map((item) => {
           const active = pathname.startsWith(item.href);
@@ -109,7 +114,6 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* User footer */}
       {user && (
         <div className="px-5 py-4 border-t border-slate-700">
           <div className="text-white text-sm font-medium truncate">{user.fullName}</div>
@@ -122,4 +126,3 @@ export default function Sidebar() {
     </aside>
   );
 }
-
