@@ -1,6 +1,5 @@
 const prisma = require('../../lib/prisma');
 
-// FR-IM-006 — incident type -> driver incident-score point deltas (all negative)
 const SCORE_IMPACT = {
   'Near Miss': -2,
   'Minor Accident': -5,
@@ -10,14 +9,8 @@ const SCORE_IMPACT = {
   'Equipment Tip-Over': -25,
 };
 
-// Weights per FR-DR-004 (configurable by System Admin once the Admin module exists —
-// hardcoded here for now, same as the anomaly threshold in fuel.service.js).
 const WEIGHTS = { incident: 0.4, fuel: 0.3, breakdown: 0.2, compliance: 0.1 };
 
-// ASSUMPTION (not specified in the SRS text available): for DriverBehaviorScore, a
-// HIGHER composite score means SAFER (points are subtracted for bad events per
-// FR-IM-006), so risk bands run the opposite direction from the asset risk bands in
-// FR-IL-002. Flagging this — the exact cutoffs should be confirmed with mentors.
 function riskCategoryFor(compositeScore) {
   if (compositeScore >= 70) return 'Low';
   if (compositeScore >= 40) return 'Medium';
@@ -38,8 +31,6 @@ async function generateIncidentNumber(tx) {
   return `${prefix}${String(nextSeq).padStart(5, '0')}`;
 }
 
-// FR-IM-001/002/004 — Incident Report Creation, with conditional third-party and
-// injury fields required by incident type.
 async function createIncidentReport(data, userId) {
   if (TYPES_REQUIRING_THIRD_PARTY_DATA.includes(data.incidentType) && !data.thirdPartyInvolved) {
     throw Object.assign(
@@ -77,8 +68,6 @@ async function createIncidentReport(data, userId) {
       },
     });
 
-    // FR-IM-004 — personal injury auto-generates a Critical alert. No SystemAlert
-    // service exists yet (belongs to the Admin/Analytics module) — logged for now.
     if (report.personalInjuryOccurred) {
       console.warn(`[CRITICAL ALERT] Personal injury on incident ${report.incidentNumber} — Fleet Manager + HSE Officer notification pending SystemAlert service`);
     }
@@ -87,7 +76,6 @@ async function createIncidentReport(data, userId) {
   });
 }
 
-// FR-IM-001 — Assign HSE Investigator
 async function assignHSEOfficer(incidentId, officerId) {
   return prisma.incidentReport.update({
     where: { id: incidentId },
@@ -95,7 +83,6 @@ async function assignHSEOfficer(incidentId, officerId) {
   });
 }
 
-// FR-IM-005 — Root Cause and Corrective Action Recording (required before closure)
 async function recordRootCause(incidentId, data) {
   return prisma.incidentReport.update({
     where: { id: incidentId },
@@ -107,13 +94,12 @@ async function recordRootCause(incidentId, data) {
   });
 }
 
-// FR-IM-006 — apply the driver score impact for this incident type
 async function applyDriverScoreImpact(incidentId) {
   const incident = await prisma.incidentReport.findUnique({ where: { id: incidentId } });
   if (!incident) throw Object.assign(new Error('Incident not found'), { status: 404 });
 
   const delta = SCORE_IMPACT[incident.incidentType];
-  if (delta === undefined) return null; // e.g. Falling Object / Third-Party Property Damage carry no driver score impact per FR-IM-006's list
+  if (delta === undefined) return null;
 
   return prisma.$transaction(async (tx) => {
     const existing = await tx.driverBehaviorScore.findUnique({ where: { driverId: incident.driverId } });
@@ -172,9 +158,6 @@ async function applyDriverScoreImpact(incidentId) {
   });
 }
 
-// FR-IM-003/005 — Close Incident Report. Requires root cause first (business rule
-// from UML_PART_A conditional inclusion); Major Accident / Third-Party Property
-// Damage cannot close without a police report number (NFR-RC-003).
 async function closeIncidentReport(incidentId, closerId) {
   const incident = await prisma.incidentReport.findUnique({ where: { id: incidentId } });
   if (!incident) throw Object.assign(new Error('Incident not found'), { status: 404 });
@@ -202,9 +185,15 @@ async function closeIncidentReport(incidentId, closerId) {
 }
 
 // FR-IM-007 — Incident Analytics
-async function getIncidentAnalytics(filters = {}) {
+//
+// ADDED — project-scoping: scopedProjectIds (null = global, no filter) is
+// merged into the where clause alongside any explicit projectId filter the
+// caller passed. A scoped user narrowing further to a specific project
+// within their own scope still works; they just can't widen past it.
+async function getIncidentAnalytics(filters = {}, scopedProjectIds = null) {
   const { projectId, startDate, endDate } = filters;
   const where = {
+    ...(scopedProjectIds !== null && { projectId: { in: scopedProjectIds } }),
     ...(projectId && { projectId }),
     ...(startDate && endDate && { occurredAt: { gte: new Date(startDate), lte: new Date(endDate) } }),
   };
@@ -237,11 +226,13 @@ async function getIncidentById(id) {
   return incident;
 }
 
-async function listIncidents(filters = {}) {
+// ADDED — project-scoping (see getIncidentAnalytics above for the same pattern).
+async function listIncidents(filters = {}, scopedProjectIds = null) {
   const { status, incidentType } = filters;
   const page = parseInt(filters.page, 10) || 1;
   const pageSize = parseInt(filters.pageSize, 10) || 25;
   const where = {
+    ...(scopedProjectIds !== null && { projectId: { in: scopedProjectIds } }),
     ...(status && { incidentStatus: status }),
     ...(incidentType && { incidentType }),
   };
@@ -258,6 +249,51 @@ async function listIncidents(filters = {}) {
   return { total, page: Number(page), pageSize: Number(pageSize), results };
 }
 
+// ADDED — attach uploaded files to an existing incident report. Called after
+// the incident is created (so we have a real incidentId to link against).
+// `files` is the array multer populates on req.files — each entry has
+// originalname, filename (the randomized disk name), path, size, mimetype.
+// filePathUrl is stored as a relative URL the frontend can request via the
+// static /uploads Express route (see app.js — add if not already there:
+//   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// ).
+async function attachMediaFiles(incidentId, files, userId) {
+  const incident = await prisma.incidentReport.findUnique({ where: { id: incidentId } });
+  if (!incident) throw Object.assign(new Error('Incident not found'), { status: 404 });
+
+  const records = await Promise.all(
+    files.map((file) => {
+      const isImage = file.mimetype.startsWith('image/');
+      return prisma.incidentMedia.create({
+        data: {
+          incidentId,
+          mediaType: isImage ? 'Photo' : 'Document',
+          fileName: file.originalname,
+          filePathUrl: `/uploads/incidents/${file.filename}`,
+          fileSizeBytes: file.size,
+          mimeType: file.mimetype,
+          uploadedBy: userId,
+        },
+      });
+    })
+  );
+  return records;
+}
+
+// ADDED — delete a single IncidentMedia record + its file from disk.
+async function deleteMediaFile(mediaId, userId) {
+  const media = await prisma.incidentMedia.findUnique({ where: { id: mediaId } });
+  if (!media) throw Object.assign(new Error('Media not found'), { status: 404 });
+
+  // Delete from disk — fail silently if the file is already gone (idempotent)
+  const fs = require('fs');
+  const path = require('path');
+  const diskPath = path.join(__dirname, '..', '..', '..', media.filePathUrl);
+  try { fs.unlinkSync(diskPath); } catch { /* already deleted or never existed */ }
+
+  await prisma.incidentMedia.delete({ where: { id: mediaId } });
+}
+
 module.exports = {
   createIncidentReport,
   assignHSEOfficer,
@@ -267,4 +303,6 @@ module.exports = {
   getIncidentAnalytics,
   getIncidentById,
   listIncidents,
+  attachMediaFiles,
+  deleteMediaFile,
 };

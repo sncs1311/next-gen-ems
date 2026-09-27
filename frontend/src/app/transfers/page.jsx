@@ -26,14 +26,54 @@ export default function TransfersPage() {
     enabled: isFleetMgr && tab === 'queue',
   });
 
+  // FIXED: this mutation previously had NO onError handler. approveTransfer()
+  // on the backend returns HTTP 409 with { blocked: true, compliance: { issues } }
+  // whenever compliance checks fail (Gulf Registration / Insurance / Driver
+  // License / open job card) — which is the NORMAL path per FR-ET-002, not an
+  // exceptional one, since the Fleet Manager is meant to see why it's blocked
+  // and decide whether to override. Axios treats 409 as a rejected promise, so
+  // with no onError this silently did nothing — exactly the "frozen button"
+  // symptom. Now: on block, show the specific failed checks and offer an
+  // override (which the backend already supports via overrideReason — this
+  // UI just never exposed it). The original transfer id is captured in the
+  // closure below, NOT read from the response body (the response shape for a
+  // blocked result doesn't include the id).
+  function approveWithHandling(id) {
+    api.post(`/transfers/${id}/approve`, { remarks: 'Approved' })
+      .then((res) => {
+        if (res.data.blocked) {
+          const issues = res.data.compliance.issues
+            .map((i) => `• ${i.check}: ${i.status}${i.reason ? ` — ${i.reason}` : ''}`)
+            .join('\n');
+          const proceed = window.confirm(
+            `This transfer is blocked by compliance checks:\n\n${issues}\n\nOverride and approve anyway? You'll need to provide a reason.`
+          );
+          if (proceed) {
+            const overrideReason = window.prompt('Reason for override (required, logged on the record):');
+            if (overrideReason) {
+              api.post(`/transfers/${id}/approve`, { remarks: 'Approved with override', overrideReason })
+                .then(() => qc.invalidateQueries(['transfer-queue']))
+                .catch((err) => alert(err.response?.data?.error || 'Override approval failed.'));
+            }
+          }
+          return;
+        }
+        qc.invalidateQueries(['transfer-queue']);
+      })
+      .catch((err) => {
+        alert(err.response?.data?.error || err.response?.data?.errors?.[0]?.message || 'Approval failed — see console for details.');
+        console.error('Transfer approval error:', err.response?.data || err);
+      });
+  }
+
   const approveMutation = useMutation({
-    mutationFn: ({ id, remarks }) => api.post(`/transfers/${id}/approve`, { remarks }),
-    onSuccess: () => qc.invalidateQueries(['transfer-queue']),
+    mutationFn: (id) => approveWithHandling(id),
   });
 
   const rejectMutation = useMutation({
     mutationFn: ({ id, reason }) => api.post(`/transfers/${id}/reject`, { reason }),
     onSuccess: () => qc.invalidateQueries(['transfer-queue']),
+    onError: (err) => alert(err.response?.data?.error || 'Rejection failed.'),
   });
 
   return (
@@ -74,8 +114,8 @@ export default function TransfersPage() {
                       <div className="flex gap-2">
                         <button className="btn-primary text-xs py-1 px-2"
                           disabled={approveMutation.isPending}
-                          onClick={() => approveMutation.mutate({ id: tr.id, remarks: 'Approved' })}>
-                          Approve
+                          onClick={() => approveMutation.mutate(tr.id)}>
+                          {approveMutation.isPending ? 'Checking…' : 'Approve'}
                         </button>
                         <button className="btn-danger text-xs py-1 px-2"
                           disabled={rejectMutation.isPending}

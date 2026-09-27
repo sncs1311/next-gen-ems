@@ -4,6 +4,7 @@ const controller = require('./incident.controller');
 const { authenticate, requireRole } = require('../../middleware/auth');
 const { validate } = require('../../middleware/validate');
 const { ROLES } = require('../../config/roles');
+const { incidentUpload } = require('../../middleware/upload');
 
 const router = express.Router();
 router.use(authenticate);
@@ -49,5 +50,8 @@ router.post(
   validate,
   controller.close
 ); // FR-IM-005/006
+
+router.post('/:id/media', incidentUpload.array('files', 10), controller.uploadMedia);
+router.delete('/:id/media/:mediaId', controller.deleteMedia);
 
 module.exports = router;

@@ -9,7 +9,8 @@
     "start": "node scripts/start.js",
     "seed": "node prisma/seed.js",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "batch": "node src/jobs/nightly.js"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.16.0",
+    "axios": "^1.19.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -28,6 +30,7 @@
     "express": "^4.22.2",
     "express-validator": "^7.3.2",
     "jsonwebtoken": "^9.0.3",
-    "morgan": "^1.11.0"
+    "morgan": "^1.11.0",
+    "multer": "^2.4.0"
   }
 }

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import { AssetCode, LoadingSpinner, ErrorMessage, EmptyState } from '@/components/ui';
+import AssetLookup from '@/components/ui/AssetLookup';
 import api from '@/lib/api';
 
 const STATUS_COLORS = {
@@ -32,18 +33,21 @@ export default function MaintenancePage() {
         </div>
       </div>
 
-      <div className="card mb-4 p-4 flex gap-3 items-end">
-        <div className="flex-1">
-          <label className="form-label">Asset ID</label>
-          <input className="form-input font-mono" placeholder="Paste asset UUID to view its job cards…"
-            value={assetId} onChange={(e) => setAssetId(e.target.value)} />
-        </div>
-        <button className="btn-primary" onClick={() => setSearched(assetId)}>Search</button>
+      <div className="card mb-4 p-4">
+        <label className="form-label">Asset</label>
+        {/* FIXED: was a raw "paste asset UUID" text input — same root cause
+            as the fuel list page's 422s. AssetLookup resolves the asset
+            number you type directly to its UUID and searches immediately
+            on selection. */}
+        <AssetLookup
+          value={assetId}
+          onChange={(id) => { setAssetId(id); setSearched(id); }}
+        />
       </div>
 
       <div className="card">
         {!searched ? (
-          <EmptyState title="Search by Asset" description="Enter an asset UUID above to view its job card history." />
+          <EmptyState title="Search by Asset" description="Type an asset number above to view its job card history." />
         ) : isLoading ? <LoadingSpinner />
         : error ? <div className="p-4"><ErrorMessage message={error.message} /></div>
         : !data?.length ? <EmptyState title="No job cards found" description="No maintenance records for this asset." action={<button className="btn-primary" onClick={() => router.push('/maintenance/job-cards/new')}>Create first job card</button>} />

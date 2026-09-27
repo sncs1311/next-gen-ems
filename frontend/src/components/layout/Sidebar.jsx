@@ -59,6 +59,13 @@ const ICONS = {
       <path d="M2 18h16"/>
     </svg>
   ),
+  intelligence: (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+      <circle cx="10" cy="10" r="8"/>
+      <path d="M10 6v4l3 2"/>
+      <path d="M10 2v2M10 16v2M2 10h2M16 10h2"/>
+    </svg>
+  ),
   admin: (
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
       <circle cx="10" cy="10" r="2.5"/>
@@ -68,16 +75,17 @@ const ICONS = {
 };
 
 const NAV = [
-  { href: '/dashboard',   label: 'Dashboard',   icon: 'dashboard',   roles: ['EXEC','FLEET_MGR','SITE_ENG','PM','MECH','MECH_SUP','HSE','FINANCE','SYS_ADMIN'] },
-  { href: '/assets',      label: 'Assets',       icon: 'assets',      roles: ['EXEC','FLEET_MGR','SITE_ENG','PM','MECH','MECH_SUP','FINANCE','SYS_ADMIN'] },
-  { href: '/drivers',     label: 'Drivers',      icon: 'drivers',     roles: ['FLEET_MGR','SITE_ENG','HSE','SYS_ADMIN'] },
-  { href: '/projects',    label: 'Projects',     icon: 'projects',    roles: ['FLEET_MGR','SITE_ENG','PM','EXEC','SYS_ADMIN'] },
-  { href: '/fuel',        label: 'Fuel',         icon: 'fuel',        roles: ['FLEET_MGR','SITE_ENG','MECH','SYS_ADMIN'] },
-  { href: '/maintenance', label: 'Maintenance',  icon: 'maintenance', roles: ['FLEET_MGR','MECH','MECH_SUP','SYS_ADMIN'] },
-  { href: '/transfers',   label: 'Transfers',    icon: 'transfers',   roles: ['FLEET_MGR','SITE_ENG','PM','SYS_ADMIN'] },
-  { href: '/incidents',   label: 'Incidents',    icon: 'incidents',   roles: ['FLEET_MGR','SITE_ENG','HSE','SYS_ADMIN'] },
-  { href: '/analytics',   label: 'Analytics',    icon: 'analytics',   roles: ['EXEC','FLEET_MGR','FINANCE','SYS_ADMIN'] },
-  { href: '/admin',       label: 'Admin',        icon: 'admin',       roles: ['SYS_ADMIN'] },
+  { href: '/dashboard',    label: 'Dashboard',    icon: 'dashboard',    roles: ['EXEC', 'FLEET_MGR', 'SITE_ENG', 'PM', 'MECH', 'MECH_SUP', 'HSE', 'FINANCE', 'SYS_ADMIN'] },
+  { href: '/assets',       label: 'Assets',       icon: 'assets',       roles: ['EXEC', 'FLEET_MGR', 'SITE_ENG', 'PM', 'MECH', 'MECH_SUP', 'FINANCE', 'SYS_ADMIN'] },
+  { href: '/drivers',      label: 'Drivers',      icon: 'drivers',      roles: ['FLEET_MGR', 'SITE_ENG', 'HSE', 'SYS_ADMIN'] },
+  { href: '/projects',     label: 'Projects',     icon: 'projects',     roles: ['FLEET_MGR', 'SITE_ENG', 'PM', 'EXEC', 'SYS_ADMIN'] },
+  { href: '/fuel',         label: 'Fuel',         icon: 'fuel',         roles: ['FLEET_MGR', 'SITE_ENG', 'MECH', 'SYS_ADMIN'] },
+  { href: '/maintenance',  label: 'Maintenance',  icon: 'maintenance',  roles: ['FLEET_MGR', 'MECH', 'MECH_SUP', 'SYS_ADMIN'] },
+  { href: '/transfers',    label: 'Transfers',    icon: 'transfers',    roles: ['FLEET_MGR', 'SITE_ENG', 'PM', 'SYS_ADMIN'] },
+  { href: '/incidents',    label: 'Incidents',    icon: 'incidents',    roles: ['FLEET_MGR', 'SITE_ENG', 'HSE', 'SYS_ADMIN'] },
+  { href: '/analytics',    label: 'Analytics',    icon: 'analytics',    roles: ['EXEC', 'FLEET_MGR', 'FINANCE', 'SYS_ADMIN'] },
+  { href: '/intelligence', label: 'Intelligence', icon: 'intelligence', roles: ['EXEC', 'FLEET_MGR', 'SYS_ADMIN'] },
+  { href: '/admin',        label: 'Admin',        icon: 'admin',        roles: ['SYS_ADMIN'] },
 ];
 
 export default function Sidebar() {
@@ -88,7 +96,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="px-5 py-5 border-b border-slate-700">
-        <div className="text-white font-bold text-base tracking-tight leading-tight">FleetCore</div>
+        <div className="text-white font-bold text-base tracking-tight leading-tight">RIG</div>
         <div className="text-slate-500 text-xs leading-tight mt-0.5">Equipment Management System</div>
       </div>
 

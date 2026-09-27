@@ -29,7 +29,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Wordmark */}
         <div className="text-center mb-8">
-          <div className="text-gray-900 text-3xl font-bold tracking-tight mb-1">FleetCore</div>
+          <div className="text-gray-900 text-3xl font-bold tracking-tight mb-1">RIG</div>
           <p className="text-gray-500 text-sm">Equipment Management System</p>
         </div>
 
@@ -76,7 +76,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-gray-400 text-xs mt-6">
-          FleetCore v1.0 — Internal Confidential
+          RIG v1.0 — Internal Confidential
         </p>
       </div>
     </div>

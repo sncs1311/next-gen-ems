@@ -5,12 +5,15 @@ import AppShell from '@/components/layout/AppShell';
 import { StatCard, LoadingSpinner, StatusBadge, AssetCode } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import CategoryCard from '@/components/ui/CategoryCard';
 
-// What each role sees in the activity panels
+// What each role sees in the activity panels — UNCHANGED for every role
+// except SITE_ENG, which now gets its own card-based home screen below.
+// This mapping still governs EXEC/FLEET_MGR/PM/MECH/MECH_SUP/HSE/FINANCE/
+// SYS_ADMIN until their dashboards get the same treatment.
 const ROLE_PANELS = {
   EXEC:      ['assets-maintenance', 'incidents'],
   FLEET_MGR: ['assets-maintenance', 'transfers-queue', 'incidents'],
-  SITE_ENG:  ['assets-maintenance', 'transfers'],
   PM:        ['assets-maintenance', 'transfers'],
   MECH:      ['assets-maintenance'],
   MECH_SUP:  ['assets-maintenance'],
@@ -40,8 +43,9 @@ function AssetsUnderMaintenance() {
           {!(data?.results?.length) ? (
             <p className="px-5 py-8 text-center text-gray-400 text-sm">No assets under maintenance</p>
           ) : data.results.map((a) => (
+            // FIXED: routes by assetNumber, not the raw UUID (a.id).
             <div key={a.id} className="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50"
-              onClick={() => router.push(`/assets/${a.id}`)}>
+              onClick={() => router.push(`/assets/${a.assetNumber}`)}>
               <div>
                 <AssetCode code={a.assetNumber} />
                 <span className="text-gray-500 text-sm ml-2">{a.make} {a.model}</span>
@@ -133,7 +137,6 @@ function RecentIncidents() {
 
 function RecentTransfers() {
   const router = useRouter();
-  // Site Engineers see history for any asset — show a prompt to navigate
   return (
     <div className="card">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -154,9 +157,36 @@ const PANEL_COMPONENTS = {
   'transfers':          RecentTransfers,
 };
 
+// ADDED — Site Engineer's card-based home screen. Categories map to the
+// modules they actually use day-to-day: Assets, Drivers, Fuel, Transfers,
+// Incidents. No separate Projects card — a Site Engineer is scoped to one
+// project already, shown via ProjectBadge in the header.
+const SITE_ENG_CATEGORIES = [
+  { key: 'assets',    label: 'Assets',    href: '/assets',    desc: 'Equipment at your site' },
+  { key: 'drivers',   label: 'Drivers',   href: '/drivers',   desc: 'Operators assigned to your site' },
+  { key: 'fuel',      label: 'Fuel',      href: '/fuel',      desc: 'Consumption, cost, and logs' },
+  { key: 'transfers', label: 'Transfers', href: '/transfers', desc: 'Submit and track equipment moves' },
+  { key: 'incidents', label: 'Incidents', href: '/incidents', desc: 'Safety reports for your site' },
+];
+
+function SiteEngineerHome() {
+  const router = useRouter();
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {SITE_ENG_CATEGORIES.map((cat) => (
+        <CategoryCard
+          key={cat.key}
+          title={cat.label}
+          description={cat.desc}
+          onClick={() => router.push(cat.href)}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
-  const panels = ROLE_PANELS[user?.role] || ['assets-maintenance'];
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['fleet-stats'],
@@ -165,6 +195,7 @@ export default function DashboardPage() {
       return data;
     },
     retry: false,
+    enabled: user?.role !== 'SITE_ENG', // Site Engineer's home doesn't use fleet-wide KPIs
   });
 
   return (
@@ -178,38 +209,42 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI cards — only for roles that see fleet-level data */}
-      {['EXEC','FLEET_MGR','SYS_ADMIN'].includes(user?.role) && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {statsLoading ? (
-            Array(4).fill(0).map((_, i) => (
-              <div key={i} className="stat-card animate-pulse"><div className="h-8 bg-gray-100 rounded w-16 mb-2"/><div className="h-4 bg-gray-50 rounded w-24"/></div>
-            ))
-          ) : stats ? (
-            <>
-              <StatCard label="Total Assets" value={stats.totalAssets ?? '—'} sub="In fleet" />
-              <StatCard label="Fleet Utilization" value={stats.utilizationRate ? `${stats.utilizationRate}%` : '—'} sub="This month" />
-              <StatCard label="MTBF" value={stats.mtbf ? `${stats.mtbf}h` : '—'} sub="Mean Time Between Failures" />
-              <StatCard label="MTTR" value={stats.mttr ? `${stats.mttr}h` : '—'} sub="Mean Time To Repair" />
-            </>
-          ) : (
-            <>
-              <StatCard label="Total Assets" value="—" sub="Analytics computed in Phase 3" />
-              <StatCard label="Fleet Utilization" value="—" sub="Analytics computed in Phase 3" />
-              <StatCard label="MTBF" value="—" sub="Analytics computed in Phase 3" />
-              <StatCard label="MTTR" value="—" sub="Analytics computed in Phase 3" />
-            </>
+      {user?.role === 'SITE_ENG' ? (
+        <SiteEngineerHome />
+      ) : (
+        <>
+          {['EXEC','FLEET_MGR','SYS_ADMIN'].includes(user?.role) && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {statsLoading ? (
+                Array(4).fill(0).map((_, i) => (
+                  <div key={i} className="stat-card animate-pulse"><div className="h-8 bg-gray-100 rounded w-16 mb-2"/><div className="h-4 bg-gray-50 rounded w-24"/></div>
+                ))
+              ) : stats ? (
+                <>
+                  <StatCard label="Total Assets" value={stats.totalAssets ?? '—'} sub="In fleet" />
+                  <StatCard label="Fleet Utilization" value={stats.utilizationRate ? `${stats.utilizationRate}%` : '—'} sub="This month" />
+                  <StatCard label="MTBF" value={stats.mtbf ? `${stats.mtbf}h` : '—'} sub="Mean Time Between Failures" />
+                  <StatCard label="MTTR" value={stats.mttr ? `${stats.mttr}h` : '—'} sub="Mean Time To Repair" />
+                </>
+              ) : (
+                <>
+                  <StatCard label="Total Assets" value="—" sub="Analytics computed in Phase 3" />
+                  <StatCard label="Fleet Utilization" value="—" sub="Analytics computed in Phase 3" />
+                  <StatCard label="MTBF" value="—" sub="Analytics computed in Phase 3" />
+                  <StatCard label="MTTR" value="—" sub="Analytics computed in Phase 3" />
+                </>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Role-scoped activity panels */}
-      <div className={`grid gap-6 ${panels.length === 1 ? 'grid-cols-1 max-w-2xl' : 'grid-cols-1 lg:grid-cols-2'}`}>
-        {panels.map((key) => {
-          const Component = PANEL_COMPONENTS[key];
-          return Component ? <Component key={key} /> : null;
-        })}
-      </div>
+          <div className={`grid gap-6 ${(ROLE_PANELS[user?.role] || ['assets-maintenance']).length === 1 ? 'grid-cols-1 max-w-2xl' : 'grid-cols-1 lg:grid-cols-2'}`}>
+            {(ROLE_PANELS[user?.role] || ['assets-maintenance']).map((key) => {
+              const Component = PANEL_COMPONENTS[key];
+              return Component ? <Component key={key} /> : null;
+            })}
+          </div>
+        </>
+      )}
     </AppShell>
   );
 }

@@ -27,12 +27,15 @@ function Field({ label, value }) {
 }
 
 export default function AssetDetailPage() {
-  const { id } = useParams();
+  // FIXED: route param is now `assetNumber` (e.g. "EQ-2025-0025"), not a raw
+  // UUID. This page lives at /assets/[assetNumber]/page.jsx now — move this
+  // file from the old /assets/[id]/ folder to /assets/[assetNumber]/.
+  const { assetNumber } = useParams();
   const router = useRouter();
 
   const { data: asset, isLoading, error } = useQuery({
-    queryKey: ['asset', id],
-    queryFn: async () => { const { data } = await api.get(`/assets/${id}`); return data; },
+    queryKey: ['asset', assetNumber],
+    queryFn: async () => { const { data } = await api.get(`/assets/by-number/${assetNumber}`); return data; },
   });
 
   if (isLoading) return <AppShell><LoadingSpinner /></AppShell>;
@@ -56,7 +59,9 @@ export default function AssetDetailPage() {
             <h1 className="text-2xl font-bold text-navy-900">{asset.make} {asset.model}</h1>
             <p className="text-slate-400 text-sm">{asset.subType?.category?.categoryName} — {asset.subType?.subTypeName}</p>
           </div>
-          <button className="btn-secondary" onClick={() => router.push(`/assets/${id}/edit`)}>Edit</button>
+          {/* FIXED: edit link now uses assetNumber too, keeping the whole
+              asset section UUID-free in the URL. */}
+          <button className="btn-secondary" onClick={() => router.push(`/assets/${asset.assetNumber}/edit`)}>Edit</button>
         </div>
       </div>
 
@@ -76,7 +81,7 @@ export default function AssetDetailPage() {
               <Field label="Engine Make/Model" value={`${spec.engineMake} ${spec.engineModel}`} />
               <Field label="Serial Number" value={spec.engineSerialNumber} />
               <Field label="Fuel Type" value={spec.fuelType} />
-              <Field label="Horsepower" value={spec.ratedHorsepowerHp && `${spec.ratedHorsepowerHp} HP`} />
+              <Field label="Horsepower" value={spec.ratedHorsepower && `${spec.ratedHorsepower} HP`} />
               <Field label="Transmission" value={spec.transmissionType} />
               <Field label="Fuel Tank" value={spec.fuelTankCapacityLiters && `${spec.fuelTankCapacityLiters} L`} />
             </dl>
@@ -87,14 +92,13 @@ export default function AssetDetailPage() {
           <Section title="Gulf Registration">
             <dl className="grid grid-cols-2 gap-4">
               <Field label="Plate Number" value={reg.plateNumber} />
-              <Field label="Country" value={reg.registrationCountry} />
+              <Field label="Country" value={reg.countryOfRegistration} />
               <Field label="Cert Number" value={reg.registrationCertNumber} />
               <Field label="Expiry" value={reg.registrationExpiryDate && new Date(reg.registrationExpiryDate).toLocaleDateString()} />
             </dl>
           </Section>
         )}
 
-        {/* Certifications */}
         {asset.equipmentCertificationAssetIdList?.length > 0 && (
           <Section title="Equipment Certifications">
             {asset.equipmentCertificationAssetIdList.map((cert) => (

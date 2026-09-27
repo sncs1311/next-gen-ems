@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import { ErrorMessage } from '@/components/ui';
+import EntityPicker from '@/components/ui/EntityPicker';
 import api from '@/lib/api';
 
 export default function NewFuelLogPage() {
@@ -55,17 +56,41 @@ export default function NewFuelLogPage() {
         <div className="card p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Asset ID *</label>
-              <input required className="form-input" placeholder="UUID" value={form.assetId} onChange={(e) => set('assetId', e.target.value)} />
+              <label className="form-label">Asset *</label>
+              {/* FIXED: was a raw "paste UUID" text input, which caused 422s
+                  since users don't know the UUID — only the readable asset
+                  number. Now a searchable picker; onChange receives the UUID. */}
+              <EntityPicker
+                endpoint="/assets"
+                labelFn={(a) => `${a.assetNumber} — ${a.make} ${a.model}`}
+                value={form.assetId}
+                onChange={(id) => set('assetId', id)}
+                placeholder="Search by asset number…"
+                required
+              />
             </div>
             <div>
-              <label className="form-label">Driver ID *</label>
-              <input required className="form-input" placeholder="UUID" value={form.driverId} onChange={(e) => set('driverId', e.target.value)} />
+              <label className="form-label">Driver *</label>
+              <EntityPicker
+                endpoint="/drivers"
+                labelFn={(d) => d.employee?.fullName ?? d.fullName ?? d.id}
+                value={form.driverId}
+                onChange={(id) => set('driverId', id)}
+                placeholder="Search by driver name…"
+                required
+              />
             </div>
           </div>
           <div>
-            <label className="form-label">Project ID *</label>
-            <input required className="form-input" placeholder="UUID" value={form.projectId} onChange={(e) => set('projectId', e.target.value)} />
+            <label className="form-label">Project *</label>
+            <EntityPicker
+              endpoint="/projects"
+              labelFn={(p) => `${p.projectCode} — ${p.projectName}`}
+              value={form.projectId}
+              onChange={(id) => set('projectId', id)}
+              placeholder="Search by project code…"
+              required
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

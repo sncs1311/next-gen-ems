@@ -42,7 +42,11 @@ router.get('/subtypes', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Same reason — must come before /:id
+router.get('/categories', controller.categories);
+
 router.get('/:id', [param('id').isUUID()], validate, controller.getById);
+router.get('/by-number/:assetNumber', controller.getByNumber);
 
 router.patch(
   '/:id/status',

@@ -1,4 +1,5 @@
 const driverService = require('./driver.service');
+const { getScopedProjectIds } = require('../../lib/projectScope');
 
 async function register(req, res, next) {
   try {
@@ -11,7 +12,8 @@ async function register(req, res, next) {
 
 async function list(req, res, next) {
   try {
-    res.json(await driverService.searchDrivers(req.query));
+    const scopedProjectIds = await getScopedProjectIds(req.user.id, req.user.role);
+    res.json(await driverService.searchDrivers(req.query, scopedProjectIds));
   } catch (err) {
     next(err);
   }

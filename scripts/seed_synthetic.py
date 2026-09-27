@@ -8,6 +8,29 @@ Usage:
 
 Set DATABASE_URL in backend/.env before running.
 Safe to run multiple times — checks for existing data before inserting.
+
+SCALED UP (see chat): the original counts (50 assets / 20 drivers / 5 projects)
+produced train/test splits with as few as 4-10 test samples per model, which
+made eval metrics (F1, precision, recall) statistically meaningless — e.g.
+Predictive Maintenance's test set had so few positive-class examples that
+precision/recall collapsed to 0 even with 90% accuracy. New counts:
+    Projects:   5  -> 10
+    Drivers:    20 -> 150
+    Assets:     50 -> 300
+    Breakdowns: 45 -> ~150 (50% of assets, was 90%)
+    Incidents:  12 -> 80
+    Transfers:  25 -> 150
+This gives each model's 20%-held-out test split roughly 30-60 samples instead
+of 4-10, which is the minimum needed for accuracy/precision/recall/F1 numbers
+to actually mean something.
+
+FIXED (see chat): three raw-SQL column names did not match schema.prisma's
+@map() values and would throw "column does not exist" at runtime:
+  1. Driver insert used "employeeId"        -> corrected to "employee_id"
+  2. EngineSpecification used
+     "rated_horsepower_hp"                  -> corrected to "rated_horsepower"
+  3. GulfRegistration used
+     "registration_country"                 -> corrected to "country_of_registration"
 """
 
 import os, sys, random, uuid, math
@@ -49,6 +72,14 @@ cur = conn.cursor()
 NOW = datetime.utcnow()
 START_DATE = NOW - timedelta(days=365)
 
+# ── Scale knobs — bump these if you need even more data ─────────────────────
+PROJECT_COUNT   = 10
+DRIVER_COUNT    = 150
+ASSET_COUNT     = 300
+BREAKDOWN_FRACTION = 0.50   # fraction of assets that get a breakdown record
+INCIDENT_COUNT  = 80
+TRANSFER_COUNT  = 150
+
 def uid(): return str(uuid.uuid4())
 def rand_date(start, end):
     delta = end - start
@@ -62,11 +93,13 @@ print("=== EMS Synthetic Data Generator ===")
 # ── 1. Check existing data ──────────────────────────────────────────────────
 cur.execute('SELECT COUNT(*) FROM "Asset"')
 existing_assets = cur.fetchone()[0]
-if existing_assets >= 50:
-    print(f"Found {existing_assets} assets already — skipping synthetic generation.")
+if existing_assets >= ASSET_COUNT:
+    print(f"Found {existing_assets} assets already (target {ASSET_COUNT}) — skipping synthetic generation.")
     print("To regenerate: run 'npx prisma migrate reset' then re-seed.")
     conn.close()
     sys.exit(0)
+elif existing_assets > 0:
+    print(f"Found {existing_assets} assets already — will add up to {ASSET_COUNT} total (existing rows are skipped via ON CONFLICT).")
 
 # ── 2. Fetch seeded lookup data ──────────────────────────────────────────────
 cur.execute('SELECT id, "role_code" FROM "Role"')
@@ -91,33 +124,40 @@ cur.execute('''
     VALUES (%s, %s, %s, %s, %s, true, NOW(), NOW()) ON CONFLICT DO NOTHING
 ''', (vendor_id, 'VEN-0001', 'Gulf Heavy Equipment Services LLC', 'Maintenance', 'Qatar'))
 
-# ── 4. Create 5 Projects ─────────────────────────────────────────────────────
-print("Creating 5 projects...")
-COUNTRIES = ['QA', 'AE', 'SA', 'OM', 'KW']
-SECTORS = ['Oil & Gas', 'Refinery', 'Infrastructure', 'Construction', 'Marine']
+# ── 4. Create Projects ────────────────────────────────────────────────────────
+print(f"Creating {PROJECT_COUNT} projects...")
+COUNTRY_CODES = ['QA', 'AE', 'SA', 'OM', 'KW', 'BH', 'QA', 'AE', 'SA', 'OM']
+SECTORS       = ['Oil & Gas', 'Refinery', 'Infrastructure', 'Construction', 'Marine',
+                  'Petrochemical', 'Water Treatment', 'Power Generation', 'Ports & Logistics', 'Mining']
+CITIES        = ['Doha', 'Dubai', 'Riyadh', 'Muscat', 'Kuwait City', 'Manama', 'Al Khor', 'Abu Dhabi', 'Jeddah', 'Sohar']
+COUNTRY_NAMES = ['Qatar', 'UAE', 'Saudi Arabia', 'Oman', 'Kuwait', 'Bahrain', 'Qatar', 'UAE', 'Saudi Arabia', 'Oman']
+
 project_ids = []
-for i in range(5):
+for i in range(PROJECT_COUNT):
     pid = uid()
     project_ids.append(pid)
-    code = f"PRJ-{COUNTRIES[i]}-2025-{str(i+1).zfill(3)}"
+    idx = i % len(COUNTRY_CODES)
+    code = f"PRJ-{COUNTRY_CODES[idx]}-2025-{str(i+1).zfill(3)}"
     cur.execute('''
         INSERT INTO "Project"(id, "project_code", "project_name", "client_name", sector, city, country,
             "start_date", "planned_completion_date", "project_status", "project_manager_id", "is_archived", "created_at", "updated_at")
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,false,NOW(),NOW()) ON CONFLICT DO NOTHING
-    ''', (pid, code, f"Project {chr(65+i)} — {SECTORS[i]}", f"Client {chr(65+i)} Holdings",
-          SECTORS[i], ['Doha','Dubai','Riyadh','Muscat','Kuwait City'][i],
-          COUNTRIES[i],
+    ''', (pid, code, f"Project {chr(65 + (i % 26))} — {SECTORS[idx]}", f"Client {chr(65 + (i % 26))} Holdings",
+          # FIXED: Project.country is @db.VarChar(10) in schema.prisma — "Saudi Arabia"
+          # (12 chars) violated that. Using the short ISO country code (COUNTRY_CODES)
+          # instead of the full country name (COUNTRY_NAMES) here.
+          SECTORS[idx], CITIES[idx], COUNTRY_CODES[idx],
           (NOW - timedelta(days=400)).date(), (NOW + timedelta(days=200)).date(),
           'Active', admin_id))
 
-# ── 5. Create 20 Drivers ─────────────────────────────────────────────────────
-print("Creating 20 drivers...")
+# ── 5. Create Drivers ─────────────────────────────────────────────────────────
+print(f"Creating {DRIVER_COUNT} drivers...")
 NATIONALITIES = ['Indian','Pakistani','Filipino','Nepali','Sri Lankan','Bangladeshi','Egyptian']
 LIC_CATS = ['Light Vehicle','Heavy Vehicle','Crane Operator Certificate','Forklift Operator Certificate']
 driver_ids = []
 driver_role_id = roles.get('DRIVER', list(roles.values())[0])
 
-for i in range(20):
+for i in range(DRIVER_COUNT):
     emp_id = uid()
     drv_id = uid()
     lic_id = uid()
@@ -134,6 +174,7 @@ for i in range(20):
           f"Driver {i+1} {nat}", nat, 'Equipment Operator',
           f"driver{i+1}@fleet.local", '$2a$12$placeholder'))
 
+    # FIXED: "employeeId" -> "employee_id" (Driver.employeeId is @map("employee_id") in schema.prisma)
     cur.execute('''
         INSERT INTO "Driver"(id,"employee_id","medical_cert_number","medical_cert_expiry",
             "years_of_experience","is_active","created_at","updated_at")
@@ -150,8 +191,8 @@ for i in range(20):
 
     driver_ids.append(drv_id)
 
-# ── 6. Create 50 Assets ──────────────────────────────────────────────────────
-print("Creating 50 assets...")
+# ── 6. Create Assets ──────────────────────────────────────────────────────────
+print(f"Creating {ASSET_COUNT} assets...")
 
 # Weight distribution: more heavy equipment, fewer cranes
 SUBTYPE_WEIGHTS = {
@@ -194,13 +235,13 @@ random.shuffle(pool)
 asset_ids = []
 asset_info = []  # (id, subtype_code, needs_cert, project_id, base_consumption, fuel_cap)
 
-for i in range(50):
+for i in range(ASSET_COUNT):
     st = pool[i % len(pool)]
     st_id, st_code, needs_cert, needs_reg = st
     asset_id = uid()
     eng_id = uid()
     year = random.randint(2018, 2024)
-    proj = project_ids[i % 5]
+    proj = project_ids[i % len(project_ids)]
     make = MAKES.get(st_code, 'Generic')
     model = MODELS.get(st_code, 'Standard')
     cap = FUEL_CAPS.get(st_code, 200)
@@ -216,7 +257,8 @@ for i in range(50):
           random.choice(['Active','Active','Active','Active','Idle']),
           proj, admin_id))
 
-    # Engine Spec
+    # Engine Spec — FIXED: "rated_horsepower_hp" -> "rated_horsepower"
+    # (EngineSpecification.ratedHorsepower is @map("rated_horsepower") in schema.prisma)
     cur.execute('''
         INSERT INTO "EngineSpecification"(id,"asset_id","engine_make","engine_model","engine_serial_number",
             "chassis_serial_number","fuel_type","rated_horsepower","fuel_tank_capacity_liters",
@@ -224,15 +266,16 @@ for i in range(50):
         VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW()) ON CONFLICT DO NOTHING
     ''', (uid(), asset_id, make, f"{model} Engine", f"SN-{asset_id[:8].upper()}",
           f"CH-{asset_id[8:16].upper()}", 'Diesel',
-          random.randint(150, 500), cap, 'Automatic'))
+          random.randint(150, 500), cap, 'Automatic', ))
 
-    # Gulf Registration for applicable types
+    # Gulf Registration for applicable types — FIXED: "registration_country" -> "country_of_registration"
+    # (GulfRegistration.countryOfRegistration is @map("country_of_registration") in schema.prisma)
     if needs_reg:
         cur.execute('''
             INSERT INTO "GulfRegistration"(id,"asset_id","plate_number","country_of_registration",
                 "registration_cert_number","registration_expiry_date","is_current","traffic_file_number","created_at","updated_at")
             VALUES(%s,%s,%s,%s,%s,%s,true,%s,NOW(),NOW()) ON CONFLICT DO NOTHING
-        ''', (uid(), asset_id, f"QA-{random.randint(10000,99999)}", 'QA',
+        ''', (uid(), asset_id, f"QA-{random.randint(10000,99999)}", 'Qatar',
               f"REG-{asset_id[:8].upper()}",
               (NOW + timedelta(days=random.randint(60, 400))).date(),
               f"TF-{random.randint(100000,999999)}"))
@@ -240,24 +283,37 @@ for i in range(50):
     asset_ids.append(asset_id)
     asset_info.append((asset_id, st_code, needs_cert, proj, consumption, cap))
 
+    if (i + 1) % 50 == 0:
+        conn.commit()
+        print(f"  ...{i+1}/{ASSET_COUNT} assets created")
+
 conn.commit()
 print(f"  Created {len(asset_ids)} assets")
 
 # ── 7. Assign drivers to assets ──────────────────────────────────────────────
 print("Assigning drivers to assets...")
-for i, (asset_id, *_) in enumerate(asset_info):
+# FIXED: this insert previously used "assigned_from" (a column that belongs to
+# AssetSiteAssignment, not this table) and "updated_at" (doesn't exist on
+# AssetOperatorAssignment at all), while omitting "shift" and "assignment_date"
+# — both required, non-nullable columns with no default. Rewritten to match
+# the actual schema: shift, assignmentDate, assignedBy required; projectId
+# optional but included since we have it.
+SHIFTS = ['Day', 'Night']
+for i, (asset_id, _st, _cert, proj_id, _cons, _cap) in enumerate(asset_info):
     driver_id = driver_ids[i % len(driver_ids)]
     cur.execute('''
-        INSERT INTO "AssetOperatorAssignment"(id,"asset_id","driver_id","shift","assignment_date","assigned_by","created_at")
-        VALUES(%s,%s,%s,%s,%s,%s,NOW()) ON CONFLICT DO NOTHING
-    ''', (uid(), asset_id, driver_id, random.choice(['Day','Night']), (NOW - timedelta(days=365)).date(), admin_id))
+        INSERT INTO "AssetOperatorAssignment"(id,"asset_id","driver_id","project_id","shift","assignment_date","assigned_by","created_at")
+        VALUES(%s,%s,%s,%s,%s,%s,%s,NOW()) ON CONFLICT DO NOTHING
+    ''', (uid(), asset_id, driver_id, proj_id, random.choice(SHIFTS), (NOW - timedelta(days=365)).date(), admin_id))
 
 # ── 8. AssetSiteAssignment ───────────────────────────────────────────────────
+# FIXED: AssetSiteAssignment has no created_at/updated_at columns at all —
+# removed both from the insert.
 for asset_id, _, _, proj_id, *_ in asset_info:
     cur.execute('''
         INSERT INTO "AssetSiteAssignment"(id,"asset_id","project_id","assigned_from","assigned_by")
         VALUES(%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING
-    ''', (uid(), asset_id, proj_id, (NOW - timedelta(days=365)), admin_id))
+    ''', (uid(), asset_id, proj_id, (NOW - timedelta(days=365)).date(), admin_id))
 
 conn.commit()
 
@@ -266,20 +322,17 @@ print("Generating fuel logs (12 months)...")
 fuel_logs = []
 current_meters = {aid: 0.0 for aid, *_ in asset_info}
 
-# Generate ~3 logs per asset per week = ~156 logs per asset = ~7800 total
 for asset_id, st_code, _, proj_id, consumption, cap in asset_info:
     driver_id = driver_ids[asset_ids.index(asset_id) % len(driver_ids)]
     current_date = START_DATE
     meter = random.uniform(500, 5000)  # starting meter reading
 
     while current_date < NOW:
-        # Skip some days (not every day has a fuel log)
         current_date += timedelta(days=random.randint(1, 4))
         if current_date >= NOW:
             break
 
         hours_worked = random.uniform(4, 10)
-        # Slight anomaly in ~5% of entries
         anomaly_factor = 1.8 if random.random() < 0.05 else random.uniform(0.9, 1.1)
         qty = min(round(consumption * hours_worked * anomaly_factor, 1), cap * 0.9)
         qty = max(qty, 10.0)
@@ -290,20 +343,32 @@ for asset_id, st_code, _, proj_id, consumption, cap in asset_info:
             uid(), asset_id, driver_id, proj_id,
             current_date + timedelta(hours=random.randint(6, 18)),
             'Diesel', qty, None, round(meter, 1),
-            'Site Tank', None, unit_price, round(qty * unit_price, 2), 'QAR',
-            round(qty / max(hours_worked, 1), 3),  # L/h efficiency
+            'Site Tank', None, unit_price, round(qty * unit_price, 2), 'SAR',
+            round(qty / max(hours_worked, 1), 3),
             admin_id
         ))
 
     current_meters[asset_id] = meter
 
-print(f"  Inserting {len(fuel_logs)} fuel logs...")
-execute_values(cur, '''
-    INSERT INTO "FuelLog"(id,"asset_id","driver_id","project_id","logged_at","fuel_type",
-        "quantity_liters","meter_reading_km","meter_reading_hours","fuel_source","voucher_reference",
-        "unit_price","total_cost","currency","calculated_efficiency","entered_by")
-    VALUES %s ON CONFLICT DO NOTHING
-''', fuel_logs, page_size=500)
+    if len(fuel_logs) >= 2000:
+        execute_values(cur, '''
+            INSERT INTO "FuelLog"(id,"asset_id","driver_id","project_id","logged_at","fuel_type",
+                "quantity_liters","meter_reading_km","meter_reading_hours","fuel_source","voucher_reference",
+                "unit_price","total_cost","currency","calculated_efficiency","entered_by")
+            VALUES %s ON CONFLICT DO NOTHING
+        ''', fuel_logs, page_size=500)
+        conn.commit()
+        print(f"  ...inserted {len(fuel_logs)} fuel logs (batch flush)")
+        fuel_logs = []
+
+if fuel_logs:
+    print(f"  Inserting final {len(fuel_logs)} fuel logs...")
+    execute_values(cur, '''
+        INSERT INTO "FuelLog"(id,"asset_id","driver_id","project_id","logged_at","fuel_type",
+            "quantity_liters","meter_reading_km","meter_reading_hours","fuel_source","voucher_reference",
+            "unit_price","total_cost","currency","calculated_efficiency","entered_by")
+        VALUES %s ON CONFLICT DO NOTHING
+    ''', fuel_logs, page_size=500)
 conn.commit()
 
 # ── 10. Breakdown Logs + Job Cards + Labor + Parts ───────────────────────────
@@ -311,8 +376,8 @@ print("Generating maintenance records...")
 breakdown_ids = []
 job_card_ids = []
 
-# ~45 breakdowns biased toward older/high-utilization assets
-breakdown_candidates = sorted(asset_info, key=lambda x: random.random())[:45]
+breakdown_count = round(len(asset_info) * BREAKDOWN_FRACTION)
+breakdown_candidates = sorted(asset_info, key=lambda x: random.random())[:breakdown_count]
 FAULT_CATS = ['Engine','Hydraulics','Electrical','Structural','Tyres','Brakes','Transmission','Cooling System']
 
 for idx, (asset_id, st_code, _, proj_id, *_) in enumerate(breakdown_candidates):
@@ -330,7 +395,6 @@ for idx, (asset_id, st_code, _, proj_id, *_) in enumerate(breakdown_candidates):
           f"{fault} failure detected during operation", fault, admin_id))
     breakdown_ids.append((brk_id, asset_id, fault, occurred))
 
-    # Job Card for this breakdown
     jc_id = uid()
     jc_num = f"JC-2025-{str(idx+1).zfill(5)}"
     opened = occurred + timedelta(hours=random.uniform(1, 6))
@@ -350,7 +414,11 @@ for idx, (asset_id, st_code, _, proj_id, *_) in enumerate(breakdown_candidates):
           closed_at, admin_id if status == 'Closed' else None, admin_id))
     job_card_ids.append((jc_id, asset_id, opened, closed_at, parts_cost + labor_cost))
 
-# Monthly preventive maintenance — ~200 records
+    if (idx + 1) % 50 == 0:
+        conn.commit()
+        print(f"  ...{idx+1}/{breakdown_count} breakdowns created")
+
+# Preventive maintenance — scales with asset count (~6 per asset)
 print("  Generating preventive job cards...")
 pv_count = 0
 for asset_id, *_ in asset_info:
@@ -371,20 +439,23 @@ for asset_id, *_ in asset_info:
               random.choice(['Engine Oil Change','Air Filter','Full OEM Inspection']),
               open_dt, parts, labor, round(parts+labor, 2), close_dt, admin_id, admin_id))
         pv_count += 1
+    if pv_count % 500 < 6:
+        conn.commit()
 
 conn.commit()
 print(f"  Created {len(breakdown_ids)} breakdowns, {len(job_card_ids)} corrective JCs, {pv_count} preventive JCs")
 
-# ── 11. Incident Reports — 12 records ────────────────────────────────────────
-print("Generating incident reports...")
-INC_TYPES = ['Near Miss','Minor Accident','Near Miss','Near Miss','Equipment Tip-Over','Minor Accident',
-             'Near Miss','Falling Object','Near Miss','Minor Accident','Near Miss','Near Miss']
+# ── 11. Incident Reports ──────────────────────────────────────────────────────
+print(f"Generating {INCIDENT_COUNT} incident reports...")
+INC_TYPE_POOL = ['Near Miss','Near Miss','Near Miss','Minor Accident','Equipment Tip-Over',
+                  'Falling Object','Minor Accident','Near Miss']
 ROOT_CAUSES = ['Human Error','Mechanical Failure','Environmental Conditions','Procedural Violation']
 
-for idx, inc_type in enumerate(INC_TYPES):
-    asset_id = asset_ids[idx * 4]
+for idx in range(INCIDENT_COUNT):
+    inc_type = random.choice(INC_TYPE_POOL)
+    asset_id = asset_ids[idx % len(asset_ids)]
     driver_id = driver_ids[idx % len(driver_ids)]
-    proj_id = project_ids[idx % 5]
+    proj_id = project_ids[idx % len(project_ids)]
     occurred = rand_dt(START_DATE, NOW - timedelta(days=7))
     inc_id = uid()
     inc_num = f"INC-2025-{str(idx+1).zfill(5)}"
@@ -401,15 +472,18 @@ for idx, inc_type in enumerate(INC_TYPES):
           f"Corrective action taken for {inc_type}" if is_closed else None,
           (occurred + timedelta(days=random.randint(2,14))).date() if is_closed else None))
 
-conn.commit()
-print(f"  Created {len(INC_TYPES)} incident reports")
+    if (idx + 1) % 50 == 0:
+        conn.commit()
 
-# ── 12. Transfer Requests — 25 records ───────────────────────────────────────
-print("Generating transfer records...")
-for i in range(25):
-    asset_id = asset_ids[i * 2]
-    src_proj = project_ids[i % 5]
-    dst_proj = project_ids[(i + 1) % 5]
+conn.commit()
+print(f"  Created {INCIDENT_COUNT} incident reports")
+
+# ── 12. Transfer Requests ─────────────────────────────────────────────────────
+print(f"Generating {TRANSFER_COUNT} transfer records...")
+for i in range(TRANSFER_COUNT):
+    asset_id = asset_ids[i % len(asset_ids)]
+    src_proj = project_ids[i % len(project_ids)]
+    dst_proj = project_ids[(i + 1) % len(project_ids)]
     req_date = rand_dt(START_DATE, NOW - timedelta(days=20))
     trn_id = uid()
     trn_num = f"TRF-2025-{str(i+1).zfill(5)}"
@@ -430,22 +504,22 @@ for i in range(25):
           (req_date + timedelta(days=2)).date() if status == 'Completed' else None,
           (req_date + timedelta(days=5)).date() if status == 'Completed' else None))
 
+    if (i + 1) % 50 == 0:
+        conn.commit()
+
 conn.commit()
-print("  Created 25 transfer records")
+print(f"  Created {TRANSFER_COUNT} transfer records")
 
 # ── 13. KPI Snapshots ────────────────────────────────────────────────────────
 print("Computing and storing KPI snapshots...")
 
-for asset_id, st_code, _, proj_id, consumption, _ in asset_info:
-    # Fuel totals
+for n, (asset_id, st_code, _, proj_id, consumption, _) in enumerate(asset_info):
     cur.execute('SELECT COALESCE(SUM("quantity_liters"),0), COALESCE(SUM("total_cost"),0) FROM "FuelLog" WHERE "asset_id"=%s', (asset_id,))
     total_fuel_l, total_fuel_cost = cur.fetchone()
 
-    # Maintenance totals
     cur.execute('SELECT COALESCE(SUM("total_cost"),0), COUNT(*) FROM "MaintenanceJobCard" WHERE "asset_id"=%s AND "status"=\'Closed\'', (asset_id,))
     maint_cost, maint_count = cur.fetchone()
 
-    # MTBF / MTTR from breakdowns + job cards
     cur.execute('''
         SELECT jc."opened_at", jc."closed_at", bl."occurred_at"
         FROM "MaintenanceJobCard" jc
@@ -459,7 +533,6 @@ for asset_id, st_code, _, proj_id, consumption, _ in asset_info:
     mttr = 0.0
     if len(breakdown_rows) > 1:
         gaps = []
-        repair_times = []
         for j in range(1, len(breakdown_rows)):
             gap = (breakdown_rows[j][2] - breakdown_rows[j-1][1]).total_seconds() / 3600 if breakdown_rows[j-1][1] else 0
             if gap > 0:
@@ -468,19 +541,24 @@ for asset_id, st_code, _, proj_id, consumption, _ in asset_info:
         mtbf = round(sum(gaps) / len(gaps), 2) if gaps else 0
         mttr = round(sum(repair_times) / len(repair_times), 2) if repair_times else 0
 
-    # Utilization — hours with fuel logs / total available hours
     cur.execute('SELECT COUNT(*) FROM "FuelLog" WHERE "asset_id"=%s', (asset_id,))
     log_count = cur.fetchone()[0]
-    utilization = round(min(log_count * 6 / (365 * 10), 1.0) * 100, 1)  # rough estimate
+    utilization = round(min(log_count * 6 / (365 * 10), 1.0) * 100, 1)
 
+    # FIXED: AssetKPISnapshot also has no "currency" column at all (in addition
+    # to no created_at/updated_at, fixed earlier) — removed it from this insert.
     cur.execute('''
-        INSERT INTO "AssetKPISnapshot"(id,"asset_id","snapshot_date","period_start","period_end","utilization_rate_percent",
-            "mtbf_hours","mttr_hours","total_fuel_liters","total_fuel_cost","total_maintenance_cost",
-            "breakdown_count","computed_at")
+        INSERT INTO "AssetKPISnapshot"(id,"asset_id","snapshot_date","period_start","period_end",
+            "utilization_rate_percent","mtbf_hours","mttr_hours","total_fuel_liters","total_fuel_cost",
+            "total_maintenance_cost","breakdown_count","computed_at")
         VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())
         ON CONFLICT DO NOTHING
     ''', (uid(), asset_id, NOW.date(), START_DATE.date(), NOW.date(), utilization, mtbf, mttr,
           float(total_fuel_l), float(total_fuel_cost), float(maint_cost), len(breakdown_rows)))
+
+    if (n + 1) % 50 == 0:
+        conn.commit()
+        print(f"  ...{n+1}/{len(asset_info)} KPI snapshots computed")
 
 conn.commit()
 print(f"  Computed KPI snapshots for {len(asset_info)} assets")

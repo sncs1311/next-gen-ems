@@ -69,8 +69,8 @@ export default function AnalyticsPage() {
           <StatCard label="MTTR" value={`${stats.mttr}h`} sub="Mean time to repair" />
           <StatCard label="Under Maintenance" value={stats.underMaintenance} sub="Currently in workshop" />
           <StatCard label="In Transit" value={stats.inTransit} sub="Being transferred" />
-          <StatCard label="Fuel This Month" value={`${stats.fuelThisMonthLiters?.toLocaleString()} L`} sub={`QAR ${stats.fuelThisMonthCost?.toLocaleString()}`} />
-          <StatCard label="Maintenance This Month" value={`QAR ${stats.maintenanceCostThisMonth?.toLocaleString()}`} sub="Parts + labor" />
+          <StatCard label="Fuel This Month" value={`${stats.fuelThisMonthLiters?.toLocaleString()} L`} sub={`SAR ${stats.fuelThisMonthCost?.toLocaleString()}`} />
+          <StatCard label="Maintenance This Month" value={`SAR ${stats.maintenanceCostThisMonth?.toLocaleString()}`} sub="Parts + labor" />
         </div>
       )}
 
@@ -126,14 +126,14 @@ export default function AnalyticsPage() {
         </Section>
 
         {/* FR-AD-006 — Maintenance Cost Trend */}
-        <Section title="Maintenance Cost Trend — Preventive vs Corrective (QAR)">
+        <Section title="Maintenance Cost Trend — Preventive vs Corrective (SAR)">
           {maintTrend ? (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={maintTrend} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => `QAR ${v.toLocaleString()}`} />
+                <Tooltip formatter={(v) => `SAR ${v.toLocaleString()}`} />
                 <Legend />
                 <Area type="monotone" dataKey="preventive" stackId="1" stroke="#888" fill="#e5e5e5" name="Preventive" />
                 <Area type="monotone" dataKey="corrective" stackId="1" stroke="#111" fill="#111" fillOpacity={0.6} name="Corrective" />
@@ -156,9 +156,9 @@ export default function AnalyticsPage() {
                   <td><span className="font-mono text-sm">{a.assetNumber}</span></td>
                   <td className="font-medium">{a.make} {a.model}</td>
                   <td className="text-gray-500">{a.category}</td>
-                  <td className="text-gray-500">QAR {a.totalFuelCost.toLocaleString()}</td>
-                  <td className="text-gray-500">QAR {a.totalMaintenanceCost.toLocaleString()}</td>
-                  <td className="font-semibold">QAR {a.tco.toLocaleString()}</td>
+                  <td className="text-gray-500">SAR {a.totalFuelCost.toLocaleString()}</td>
+                  <td className="text-gray-500">SAR {a.totalMaintenanceCost.toLocaleString()}</td>
+                  <td className="font-semibold">SAR {a.tco.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

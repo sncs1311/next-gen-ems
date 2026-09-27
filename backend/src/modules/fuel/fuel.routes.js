@@ -26,6 +26,19 @@ router.post(
 
 router.get('/logs/asset/:assetId', [param('assetId').isUUID()], validate, controller.historyForAsset); // FR-FM-...
 
+// ADDED — FR-FM-007-adjacent: pie-chart / total-spend summary. Project-scoped
+// automatically via req.scope (see fuel.controller.js) — no siteId param
+// needed, same pattern as GET /assets. Open to any authenticated role whose
+// home screen shows fuel numbers (Fleet Manager, Site Engineer for their own
+// site, Finance/Exec globally, PM for their project, Sys Admin globally).
+router.get(
+  '/summary',
+  requireRole(ROLES.FLEET_MGR, ROLES.SITE_ENG, ROLES.PM, ROLES.FINANCE, ROLES.EXEC, ROLES.SYS_ADMIN),
+  [query('startDate').optional().isISO8601(), query('endDate').optional().isISO8601()],
+  validate,
+  controller.summary
+);
+
 // FR-FM-005 — Fleet Manager and Site Engineer record bulk fuel deliveries
 router.post(
   '/deliveries',

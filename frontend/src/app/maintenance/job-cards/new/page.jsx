@@ -4,6 +4,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import { ErrorMessage } from '@/components/ui';
+import AssetLookup from '@/components/ui/AssetLookup';
+import EntityPicker from '@/components/ui/EntityPicker';
 import api from '@/lib/api';
 
 const FAULT_CATEGORIES = ['Engine', 'Hydraulics', 'Electrical', 'Structural', 'Tyres', 'Brakes', 'Transmission', 'Cooling System', 'Other'];
@@ -58,8 +60,12 @@ export default function NewJobCardPage() {
             <h2 className="font-semibold text-navy-800 mb-4">Basic Details</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="form-label">Asset ID *</label>
-                <input required className="form-input font-mono" placeholder="UUID" value={form.assetId} onChange={(e) => set('assetId', e.target.value)} />
+                <label className="form-label">Asset *</label>
+                <AssetLookup
+                  value={form.assetId}
+                  onChange={(id) => set('assetId', id)}
+                  required
+                />
               </div>
               <div>
                 <label className="form-label">Job Card Type *</label>
@@ -76,20 +82,39 @@ export default function NewJobCardPage() {
                 </select>
               </div>
               <div className="col-span-2">
-                <label className="form-label">Project ID</label>
-                <input className="form-input font-mono" placeholder="UUID (if applicable)" value={form.projectId} onChange={(e) => set('projectId', e.target.value)} />
+                <label className="form-label">Project</label>
+                <EntityPicker
+                  endpoint="/projects"
+                  labelFn={(p) => `${p.projectCode} — ${p.projectName}`}
+                  value={form.projectId}
+                  onChange={(id) => set('projectId', id)}
+                  placeholder="Search by project code…"
+                />
               </div>
             </div>
           </div>
 
-          {/* Corrective fields */}
           {form.jobCardType === 'Corrective' && (
             <div className="card p-6">
               <h2 className="font-semibold text-navy-800 mb-4">Corrective Details — FR-MM-003</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="form-label">Breakdown Log ID *</label>
-                  <input required className="form-input font-mono" placeholder="UUID from the breakdown report" value={form.breakdownLogId} onChange={(e) => set('breakdownLogId', e.target.value)} />
+                  <label className="form-label">Breakdown Report *</label>
+                  {/* Breakdown logs don't have a human-readable search
+                      endpoint yet — using a breakdown number lookup once
+                      that endpoint exists. For now EntityPicker against
+                      /maintenance/breakdowns when that list route is added.
+                      Temporarily keeping as a typed field but with the
+                      breakdown number format hint rather than "UUID". */}
+                  <EntityPicker
+                    endpoint="/maintenance/breakdowns"
+                    labelFn={(b) => `${b.breakdownNumber} — ${b.faultCategory} (${new Date(b.occurredAt).toLocaleDateString()})`}
+                    idKey="id"
+                    value={form.breakdownLogId}
+                    onChange={(id) => set('breakdownLogId', id)}
+                    placeholder="Search by breakdown number…"
+                    required
+                  />
                   <p className="text-xs text-slate-400 mt-1">Corrective job cards must link to a Breakdown Report (FR-MM-003)</p>
                 </div>
                 <div>
@@ -107,7 +132,6 @@ export default function NewJobCardPage() {
             </div>
           )}
 
-          {/* Preventive fields */}
           {form.jobCardType === 'Preventive' && (
             <div className="card p-6">
               <h2 className="font-semibold text-navy-800 mb-4">Preventive Details</h2>
@@ -121,13 +145,19 @@ export default function NewJobCardPage() {
             </div>
           )}
 
-          {/* External vendor */}
           {form.workshopType === 'External' && (
             <div className="card p-6">
               <h2 className="font-semibold text-navy-800 mb-4">Vendor Details</h2>
               <div>
-                <label className="form-label">Vendor ID *</label>
-                <input required className="form-input font-mono" placeholder="UUID" value={form.vendorId} onChange={(e) => set('vendorId', e.target.value)} />
+                <label className="form-label">Vendor *</label>
+                <EntityPicker
+                  endpoint="/admin/vendors"
+                  labelFn={(v) => `${v.vendorName} (${v.vendorType})`}
+                  value={form.vendorId}
+                  onChange={(id) => set('vendorId', id)}
+                  placeholder="Search by vendor name…"
+                  required
+                />
               </div>
             </div>
           )}

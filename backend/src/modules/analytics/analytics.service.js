@@ -41,12 +41,12 @@ async function getFleetStats() {
     inTransit,
     idle,
     active: totalAssets - underMaintenance - inTransit - idle,
-    utilizationRate: Math.round(snapshots._avg.utilizationRatePercent ?? 0),
-    mtbf: Math.round(snapshots._avg.mtbfHours ?? 0),
-    mttr: Math.round(snapshots._avg.mttrHours ?? 0),
-    fuelThisMonthLiters: Math.round(fuelThisMonth._sum.quantityLiters ?? 0),
-    fuelThisMonthCost: Math.round(fuelThisMonth._sum.totalCost ?? 0),
-    maintenanceCostThisMonth: Math.round(maintThisMonth._sum.totalCost ?? 0),
+    utilizationRate: Math.round(Number(snapshots._avg.utilizationRatePercent ?? 0)),
+    mtbf: Math.round(Number(snapshots._avg.mtbfHours ?? 0)),
+    mttr: Math.round(Number(snapshots._avg.mttrHours ?? 0)),
+    fuelThisMonthLiters: Math.round(Number(fuelThisMonth._sum.quantityLiters ?? 0)),
+    fuelThisMonthCost: Math.round(Number(fuelThisMonth._sum.totalCost ?? 0)),
+    maintenanceCostThisMonth: Math.round(Number(maintThisMonth._sum.totalCost ?? 0)),
   };
 }
 
@@ -73,11 +73,21 @@ async function getUtilizationByProject() {
 
   return projects.map((p) => {
     const assignments = p.assetSiteAssignmentProjectIdList;
+    // FIXED: utilizationRatePercent is a Prisma Decimal field (@db.Decimal(5,2)
+    // in schema.prisma). Adding it directly with `+` silently does STRING
+    // CONCATENATION instead of numeric addition — decimal.js's valueOf()
+    // returns a string, not a number — which corrupts the running sum into
+    // garbage, and the division that follows produces NaN. NaN serializes to
+    // `null` over JSON, which is why this chart rendered with correct axis
+    // labels but zero visible bars: Recharts can't draw a null-height bar.
+    // Wrapped with Number(...) here, matching the pattern already used
+    // correctly elsewhere in this same file (getTopTCOAssets,
+    // getMaintenanceCostTrend below).
     const avgUtil =
       assignments.length > 0
         ? assignments.reduce((sum, a) => {
             const snap = a.asset.assetKPISnapshotAssetIdList[0];
-            return sum + (snap?.utilizationRatePercent ?? 0);
+            return sum + Number(snap?.utilizationRatePercent ?? 0);
           }, 0) / assignments.length
         : 0;
     return {
@@ -192,7 +202,7 @@ async function getFuelByProject() {
           where: { projectId: p.id, loggedAt: { gte: start, lt: end } },
           _sum: { quantityLiters: true },
         });
-        row[p.projectCode] = Math.round(agg._sum.quantityLiters ?? 0);
+        row[p.projectCode] = Math.round(Number(agg._sum.quantityLiters ?? 0));
       }
       return row;
     })
@@ -309,7 +319,6 @@ async function getAssetsDueForService() {
     take: 20,
   });
 
-  // Also check recently created assets with no schedule yet
   return schedules.map((s) => ({
     assetId: s.asset.id,
     assetNumber: s.asset.assetNumber,

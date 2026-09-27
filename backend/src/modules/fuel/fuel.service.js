@@ -37,7 +37,6 @@ function calculateEfficiency(currentReading, previousReading, quantity, unit) {
   if (previousReading == null || quantity <= 0) return null;
   const delta = currentReading - previousReading;
   if (delta <= 0) return null;
-  // km/L for vehicles (meter_reading_km), L/hour for equipment (meter_reading_hours)
   return unit === 'km' ? delta / quantity : quantity / delta;
 }
 
@@ -54,7 +53,7 @@ async function detectAnomaly(fuelLog) {
     select: { calculatedEfficiency: true },
   });
 
-  if (recentLogs.length < 3 || fuelLog.calculatedEfficiency == null) return null; // not enough history yet
+  if (recentLogs.length < 3 || fuelLog.calculatedEfficiency == null) return null;
 
   const avg =
     recentLogs.reduce((sum, l) => sum + Number(l.calculatedEfficiency), 0) / recentLogs.length;
@@ -78,9 +77,7 @@ async function detectAnomaly(fuelLog) {
   });
 }
 
-// FR-FM-001 — Fuel Log Entry. Orchestrates capacity validation, meter progression,
-// efficiency calc, and anomaly detection in one transaction (service-layer business
-// rule enforcement per SRS 4.3 layer structure).
+// FR-FM-001 — Fuel Log Entry
 async function createFuelLog(data, userId) {
   await validateTankCapacity(data.assetId, data.quantityLiters);
   const meterField = data.meterReadingKm != null ? 'meterReadingKm' : 'meterReadingHours';
@@ -122,7 +119,6 @@ async function createFuelLog(data, userId) {
 
   const anomaly = await detectAnomaly(fuelLog);
 
-  // If drawn from a site tank, decrement the running balance (feeds FR-FM-006 reconciliation).
   if (data.tankId) {
     await prisma.siteFuelTank.update({
       where: { id: data.tankId },
@@ -133,7 +129,7 @@ async function createFuelLog(data, userId) {
   return { fuelLog, anomaly };
 }
 
-// FR-FM-005 — Site Fuel Tank Management: bulk deliveries increase the running balance
+// FR-FM-005 — Site Fuel Tank Management
 async function recordTankDelivery(data, userId) {
   return prisma.$transaction(async (tx) => {
     const delivery = await tx.siteFuelDelivery.create({
@@ -159,7 +155,7 @@ async function recordTankDelivery(data, userId) {
   });
 }
 
-// FR-FM-006 — Fuel Reconciliation Report (per tank, per period)
+// FR-FM-006 — Fuel Reconciliation Report
 async function getFuelReconciliation(tankId, periodStart, periodEnd) {
   const tank = await prisma.siteFuelTank.findUnique({ where: { id: tankId } });
   if (!tank) throw Object.assign(new Error('Tank not found'), { status: 404 });
@@ -202,11 +198,68 @@ async function getFuelHistoryForAsset(assetId, filters = {}) {
   });
 }
 
+// ADDED — fuel usage summary grouped by asset category, for the pie-chart
+// view. Returns overall totals (litres, cost, avg price/litre) plus the
+// per-category breakdown rendered as pie slices. scopedProjectIds: null = no
+// filter (global roles), else restricted to the user's assigned project(s).
+async function getFuelSummary(scopedProjectIds = null, dateRange = {}) {
+  const { startDate, endDate } = dateRange;
+  const where = {
+    ...(scopedProjectIds !== null && { projectId: { in: scopedProjectIds } }),
+    ...(startDate && endDate && { loggedAt: { gte: new Date(startDate), lte: new Date(endDate) } }),
+  };
+
+  const logs = await prisma.fuelLog.findMany({
+    where,
+    select: {
+      quantityLiters: true,
+      totalCost: true,
+      unitPrice: true,
+      asset: { select: { subType: { select: { category: { select: { id: true, categoryName: true } } } } } },
+    },
+  });
+
+  const byCategory = new Map();
+  let totalLiters = 0;
+  let totalCost = 0;
+  let priceSum = 0;
+  let priceCount = 0;
+
+  for (const log of logs) {
+    const liters = Number(log.quantityLiters ?? 0);
+    const cost = Number(log.totalCost ?? 0);
+    totalLiters += liters;
+    totalCost += cost;
+    if (log.unitPrice != null) {
+      priceSum += Number(log.unitPrice);
+      priceCount++;
+    }
+
+    const cat = log.asset?.subType?.category;
+    const key = cat?.id ?? 'uncategorized';
+    const name = cat?.categoryName ?? 'Uncategorized';
+    if (!byCategory.has(key)) byCategory.set(key, { categoryId: key, categoryName: name, liters: 0, cost: 0 });
+    const entry = byCategory.get(key);
+    entry.liters += liters;
+    entry.cost += cost;
+  }
+
+  return {
+    totalLiters: Math.round(totalLiters),
+    totalCost: Math.round(totalCost * 100) / 100,
+    avgPricePerLiter: priceCount > 0 ? Math.round((priceSum / priceCount) * 1000) / 1000 : null,
+    byCategory: Array.from(byCategory.values())
+      .map((c) => ({ ...c, liters: Math.round(c.liters), cost: Math.round(c.cost * 100) / 100 }))
+      .sort((a, b) => b.liters - a.liters),
+  };
+}
+
 module.exports = {
   createFuelLog,
   recordTankDelivery,
   getFuelReconciliation,
   getFuelHistoryForAsset,
+  getFuelSummary,
   validateTankCapacity,
   calculateEfficiency,
 };

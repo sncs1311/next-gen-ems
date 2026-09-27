@@ -2,7 +2,7 @@ import './globals.css';
 import Providers from '@/components/layout/Providers';
 
 export const metadata = {
-  title: 'FleetCore — Equipment Management System',
+  title: 'RIG — Equipment Management System',
   description: 'Next-Gen Equipment Management & Predictive Analytics',
 };
 

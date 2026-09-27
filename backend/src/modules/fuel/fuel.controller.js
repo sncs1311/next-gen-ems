@@ -35,4 +35,22 @@ async function historyForAsset(req, res, next) {
   }
 }
 
-module.exports = { createLog, recordDelivery, reconciliation, historyForAsset };
+// Pie-chart summary, project-scoped.
+// CHANGED: uses req.scope (set once per request by middleware/projectScope.js,
+// mounted in app.js after authenticate) instead of a separate
+// getScopedProjectIds() lookup — that was a second, independent scope
+// resolution living in lib/projectScope.js. Keeping one scope resolver avoids
+// the two drifting apart, and skips a redundant DB round trip per request.
+// req.scope.isGlobal ? null (no filter) : req.scope.projectIds (array) —
+// matches exactly what fuelService.getFuelSummary already expects.
+async function summary(req, res, next) {
+  try {
+    const scopedProjectIds = req.scope?.isGlobal ? null : (req.scope?.projectIds ?? []);
+    const { startDate, endDate } = req.query;
+    res.json(await fuelService.getFuelSummary(scopedProjectIds, { startDate, endDate }));
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { createLog, recordDelivery, reconciliation, historyForAsset, summary };
